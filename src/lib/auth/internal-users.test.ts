@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { isTatariEmail, normalizeEmail } from "./allowed-email";
 import { safeCallbackUrl } from "./callback-url";
 import {
+  ensureInternalUser,
   findActiveInternalUserByEmail,
   isApprovedInternalUser,
-  normalizeEmail,
   resolveConsoleActor,
 } from "./internal-users";
-import { loginErrorMessage } from "./login-errors";
+import { isMissingWorkSchema, loginErrorMessage } from "./login-errors";
 
 const reviewer = {
   id: "00000000-0000-4000-8000-000000000101",
@@ -34,26 +35,28 @@ describe("internal user access", () => {
   });
 
   it("looks up an active console user by email", async () => {
-    const prisma = {
-      internalUser: {
-        findUnique: async () => reviewer,
-      },
+    const db = {
+      findByEmail: async () => reviewer,
+      countActive: async () => 1,
+      create: async () => reviewer,
+      setRole: async () => reviewer,
     };
 
     await expect(
-      findActiveInternalUserByEmail("Reviewer@Tatari.test", { prisma }),
+      findActiveInternalUserByEmail("Reviewer@Tatari.test", { db }),
     ).resolves.toEqual(reviewer);
   });
 
   it("does not treat an inactive database row as a console actor", async () => {
-    const prisma = {
-      internalUser: {
-        findUnique: async () => ({ ...reviewer, isActive: false }),
-      },
+    const db = {
+      findByEmail: async () => ({ ...reviewer, isActive: false }),
+      countActive: async () => 1,
+      create: async () => reviewer,
+      setRole: async () => reviewer,
     };
 
     await expect(
-      findActiveInternalUserByEmail(reviewer.email, { prisma }),
+      findActiveInternalUserByEmail(reviewer.email, { db }),
     ).resolves.toBeNull();
   });
 
@@ -80,6 +83,8 @@ describe("login helpers", () => {
   it("rejects unsafe callback URLs", () => {
     expect(safeCallbackUrl("//evil.example")).toBe("/work");
     expect(safeCallbackUrl("/login")).toBe("/work");
+    expect(safeCallbackUrl("/signup")).toBe("/work");
+    expect(safeCallbackUrl("/auth/callback")).toBe("/work");
     expect(safeCallbackUrl("/api/auth/session")).toBe("/work");
     expect(
       safeCallbackUrl("http://localhost:3000/work/projects/operations"),
@@ -89,6 +94,112 @@ describe("login helpers", () => {
 
   it("explains access denial without exposing internals", () => {
     expect(loginErrorMessage("AccessDenied")).toMatch(/not approved/);
+    expect(loginErrorMessage("DomainDenied")).toMatch(/tatari\.systems/);
+    expect(loginErrorMessage("SchemaMissing")).toMatch(/schema\.sql/);
     expect(loginErrorMessage("nope")).toMatch(/could not sign you in/i);
+  });
+
+  it("detects missing Work tables from PostgREST errors", () => {
+    expect(
+      isMissingWorkSchema(
+        new Error("Could not find the table 'public.profiles' in the schema cache"),
+      ),
+    ).toBe(true);
+    expect(isMissingWorkSchema(new Error("PGRST205"))).toBe(true);
+    expect(isMissingWorkSchema(new Error("Email or password is incorrect."))).toBe(
+      false,
+    );
+  });
+});
+
+describe("Tatari email allowlist", () => {
+  it("accepts only @tatari.systems addresses", () => {
+    expect(isTatariEmail("ops@tatari.systems")).toBe(true);
+    expect(isTatariEmail("  Ops@Tatari.Systems ")).toBe(true);
+    expect(isTatariEmail("ops@tatari.system")).toBe(false);
+    expect(isTatariEmail("ops@gmail.com")).toBe(false);
+  });
+});
+
+describe("ensureInternalUser", () => {
+  it("provisions every new person as admin", async () => {
+    const created: unknown[] = [];
+    const db = {
+      findByEmail: async () => null,
+      countActive: async () => 4,
+      create: async (data: {
+        email: string;
+        displayName: string;
+        role: string;
+      }) => {
+        created.push(data);
+        return {
+          id: "00000000-0000-4000-8000-000000000301",
+          email: "ops@tatari.systems",
+          displayName: "Ops",
+          role: "admin",
+          isActive: true,
+        };
+      },
+      setRole: async () => {
+        throw new Error("should not promote on create");
+      },
+    };
+
+    await expect(
+      ensureInternalUser(
+        { email: "ops@tatari.systems", displayName: "Ops" },
+        { db },
+      ),
+    ).resolves.toMatchObject({
+      email: "ops@tatari.systems",
+      role: "admin",
+    });
+    expect(created[0]).toMatchObject({ role: "admin" });
+  });
+
+  it("promotes an existing non-admin on sign-in", async () => {
+    const existing = {
+      ...reviewer,
+      email: "ops@tatari.systems",
+    };
+    const db = {
+      findByEmail: async () => existing,
+      countActive: async () => 1,
+      create: async () => {
+        throw new Error("should not create");
+      },
+      setRole: async (id: string, role: string) => ({
+        ...existing,
+        id,
+        role,
+      }),
+    };
+
+    await expect(
+      ensureInternalUser({ email: existing.email }, { db }),
+    ).resolves.toMatchObject({
+      email: existing.email,
+      role: "admin",
+    });
+  });
+
+  it("rejects non-Tatari domains before writing", async () => {
+    const db = {
+      findByEmail: async () => {
+        throw new Error("should not look up");
+      },
+      countActive: async () => 0,
+      create: async () => {
+        throw new Error("should not create");
+      },
+      setRole: async () => {
+        throw new Error("should not promote");
+      },
+    };
+
+    await expect(
+      ensureInternalUser({ email: "ops@gmail.com" }, { db }),
+    ).resolves.toBeNull();
   });
 });

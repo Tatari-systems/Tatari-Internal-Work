@@ -1,14 +1,12 @@
-import { getPrisma } from "@/lib/db/client";
-import { canReview } from "@/lib/domain/roles";
+import { isTatariEmail, normalizeEmail } from "@/lib/auth/allowed-email";
+import { getProfileDatabase } from "@/lib/db/supabase-profiles";
+import type { ProfileDatabase, ProfileRecord } from "@/lib/db/types";
+import { canReview, isInternalRole } from "@/lib/domain/roles";
 import type { InternalRole } from "@/lib/domain/roles";
 
-export type InternalUserRecord = {
-  id: string;
-  email: string;
-  displayName: string | null;
-  role: string;
-  isActive: boolean;
-};
+export { normalizeEmail } from "@/lib/auth/allowed-email";
+
+export type InternalUserRecord = ProfileRecord;
 
 export type ConsoleActor = {
   id: string;
@@ -17,23 +15,21 @@ export type ConsoleActor = {
   role: InternalRole;
 };
 
-type InternalUserReader = {
-  internalUser: {
-    findUnique: (args: {
-      where: { email: string };
-      select: {
-        id: true;
-        email: true;
-        displayName: true;
-        role: true;
-        isActive: true;
-      };
-    }) => Promise<InternalUserRecord | null>;
-  };
+type ProfileDeps = {
+  db?: ProfileDatabase;
 };
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+function toActor(user: InternalUserRecord | null): ConsoleActor | null {
+  if (!isApprovedInternalUser(user)) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    role: user.role,
+  };
 }
 
 export function isApprovedInternalUser(
@@ -42,9 +38,13 @@ export function isApprovedInternalUser(
   return Boolean(user && user.isActive && canReview(user.role));
 }
 
+async function resolveDb(db?: ProfileDatabase): Promise<ProfileDatabase> {
+  return db ?? getProfileDatabase();
+}
+
 export async function findActiveInternalUserByEmail(
   email: string,
-  deps: { prisma?: InternalUserReader } = {},
+  deps: ProfileDeps = {},
 ): Promise<InternalUserRecord | null> {
   const normalized = normalizeEmail(email);
 
@@ -52,17 +52,8 @@ export async function findActiveInternalUserByEmail(
     return null;
   }
 
-  const prisma = deps.prisma ?? (getPrisma() as unknown as InternalUserReader);
-  const user = await prisma.internalUser.findUnique({
-    where: { email: normalized },
-    select: {
-      id: true,
-      email: true,
-      displayName: true,
-      role: true,
-      isActive: true,
-    },
-  });
+  const db = await resolveDb(deps.db);
+  const user = await db.findByEmail(normalized);
 
   if (!isApprovedInternalUser(user)) {
     return null;
@@ -83,15 +74,39 @@ export async function resolveConsoleActor(
   }
 
   const user = await lookup(email);
+  return toActor(user);
+}
 
-  if (!isApprovedInternalUser(user)) {
+export async function ensureInternalUser(
+  input: { email: string; displayName?: string | null },
+  deps: ProfileDeps = {},
+): Promise<ConsoleActor | null> {
+  if (!isTatariEmail(input.email)) {
     return null;
   }
 
-  return {
-    id: user.id,
-    email: user.email,
-    displayName: user.displayName,
-    role: user.role,
-  };
+  const email = normalizeEmail(input.email);
+  const db = await resolveDb(deps.db);
+  const existing = await db.findByEmail(email);
+
+  if (existing) {
+    if (existing.isActive && existing.role !== "admin") {
+      return toActor(await db.setRole(existing.id, "admin"));
+    }
+
+    return toActor(existing);
+  }
+
+  const displayName =
+    input.displayName?.trim() || email.slice(0, email.indexOf("@"));
+  const created = await db.create({
+    email,
+    displayName,
+    role: "admin",
+  });
+
+  return toActor({
+    ...created,
+    role: isInternalRole(created.role) ? created.role : "admin",
+  });
 }

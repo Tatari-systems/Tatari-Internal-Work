@@ -19,7 +19,7 @@ export default async function ProjectsPage() {
       <PageHeader
         kicker="Workspace"
         title="Projects"
-        description="One Tatari workspace. Mining, compute, hiring, finance, and the rest of ops."
+        description="Tatari 1.5, Internal Work, Mining ops, and Pitch."
         actions={canAdminister(actor.role) ? <CreateProjectDialog /> : null}
       />
       {projects.length === 0 ? (

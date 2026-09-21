@@ -1,5 +1,10 @@
-export { auth as proxy } from "@/auth";
+import { updateSession } from "@/lib/supabase/proxy";
+import type { NextRequest } from "next/server";
+
+export async function proxy(request: NextRequest) {
+  return updateSession(request);
+}
 
 export const config = {
-  matcher: [],
+  matcher: ["/work", "/work/:path*", "/login", "/signup", "/auth/:path*"],
 };

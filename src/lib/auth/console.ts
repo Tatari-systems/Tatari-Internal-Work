@@ -1,85 +1,64 @@
-import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+
+import { isTatariEmail } from "@/lib/auth/allowed-email";
 import {
-  resolveConsoleActor,
+  ensureInternalUser,
   type ConsoleActor,
 } from "@/lib/auth/internal-users";
-import { getPrisma } from "@/lib/db/client";
-import { isInternalRole } from "@/lib/domain/roles";
+import { isMissingWorkSchema } from "@/lib/auth/login-errors";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const LOCAL_PREVIEW = {
-  id: "00000000-0000-4000-8000-000000000199",
-  email: "local@tatari.internal",
-  displayName: "Local preview",
-  role: "admin" as const,
-};
+export async function getOptionalConsoleActor(): Promise<ConsoleActor | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
 
-async function readSession() {
+  const supabase = await createSupabaseServerClient();
+  let user;
+
   try {
-    return await auth();
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
   } catch {
     return null;
   }
-}
 
-async function ensureLocalPreviewActor(): Promise<ConsoleActor> {
-  const prisma = getPrisma();
-  const existing = await prisma.internalUser.findUnique({
-    where: { email: LOCAL_PREVIEW.email },
-    select: {
-      id: true,
-      email: true,
-      displayName: true,
-      role: true,
-      isActive: true,
-    },
-  });
-
-  if (existing?.isActive && isInternalRole(existing.role)) {
-    return {
-      id: existing.id,
-      email: existing.email,
-      displayName: existing.displayName,
-      role: existing.role,
-    };
+  if (!user?.email || !isTatariEmail(user.email)) {
+    return null;
   }
 
-  const user = await prisma.internalUser.upsert({
-    where: { email: LOCAL_PREVIEW.email },
-    create: {
-      id: LOCAL_PREVIEW.id,
-      email: LOCAL_PREVIEW.email,
-      displayName: LOCAL_PREVIEW.displayName,
-      role: LOCAL_PREVIEW.role,
-      isActive: true,
-    },
-    update: {
-      displayName: LOCAL_PREVIEW.displayName,
-      role: LOCAL_PREVIEW.role,
-      isActive: true,
-    },
-    select: {
-      id: true,
-      email: true,
-      displayName: true,
-      role: true,
-    },
-  });
-
-  return {
-    id: user.id,
+  return ensureInternalUser({
     email: user.email,
-    displayName: user.displayName,
-    role: isInternalRole(user.role) ? user.role : LOCAL_PREVIEW.role,
-  };
+    displayName:
+      typeof user.user_metadata?.display_name === "string"
+        ? user.user_metadata.display_name
+        : typeof user.user_metadata?.full_name === "string"
+          ? user.user_metadata.full_name
+          : user.email,
+  });
 }
 
 export async function requireConsoleActor(): Promise<ConsoleActor> {
-  const session = await readSession();
-  const actor = await resolveConsoleActor(session);
-
-  if (actor) {
-    return actor;
+  if (!isSupabaseConfigured()) {
+    redirect("/login?error=Configuration");
   }
 
-  return ensureLocalPreviewActor();
+  let actor: ConsoleActor | null = null;
+
+  try {
+    actor = await getOptionalConsoleActor();
+  } catch (error) {
+    if (isMissingWorkSchema(error)) {
+      redirect("/login?error=SchemaMissing");
+    }
+
+    throw error;
+  }
+
+  if (!actor) {
+    redirect("/login?error=AccessDenied");
+  }
+
+  return actor;
 }

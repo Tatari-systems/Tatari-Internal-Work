@@ -6,24 +6,23 @@ import { AuthScreen } from "@/components/auth-screen";
 import { TATARI_EMAIL_DOMAIN } from "@/lib/auth/allowed-email";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { getOptionalConsoleActor } from "@/lib/auth/console";
-import { isMissingWorkSchema, loginErrorMessage } from "@/lib/auth/login-errors";
+import { isMissingWorkSchema } from "@/lib/auth/login-errors";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Sign in",
+  title: "Create account",
 };
 
-export default async function LoginPage({
+export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
+  searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const params = await searchParams;
   const callbackUrl = safeCallbackUrl(params.callbackUrl);
   let actor = null;
-  let schemaMissing = false;
 
   try {
     actor = await getOptionalConsoleActor();
@@ -31,28 +30,19 @@ export default async function LoginPage({
     if (!isMissingWorkSchema(error)) {
       throw error;
     }
-
-    schemaMissing = true;
   }
 
   if (actor) {
     redirect(callbackUrl);
   }
 
-  const errorMessage = schemaMissing
-    ? loginErrorMessage("SchemaMissing")
-    : params.error
-      ? loginErrorMessage(params.error)
-      : undefined;
-
   return (
     <AuthScreen
-      title="Sign in to Tatari"
-      description={`Use your @${TATARI_EMAIL_DOMAIN} email, or Google with that same account.`}
-      errorMessage={errorMessage}
+      title="Create a Tatari account"
+      description={`Accounts are limited to @${TATARI_EMAIL_DOMAIN}. The first person in becomes admin.`}
     >
       <AuthForm
-        mode="signin"
+        mode="signup"
         callbackUrl={callbackUrl}
         configured={isSupabaseConfigured()}
       />

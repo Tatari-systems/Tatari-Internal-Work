@@ -2,7 +2,11 @@ import { signInWithGoogle, signOutToHome } from "@/lib/auth/actions";
 
 export function GoogleSignInButton({ callbackUrl }: { callbackUrl: string }) {
   return (
-    <form action={signInWithGoogle}>
+    <form
+      action={async (formData) => {
+        await signInWithGoogle(formData);
+      }}
+    >
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <button
         type="submit"

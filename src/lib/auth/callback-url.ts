@@ -31,6 +31,8 @@ export function safeCallbackUrl(value: string | null | undefined): string {
     path.startsWith("//") ||
     path.includes("\\") ||
     path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/auth") ||
     path.startsWith("/api/")
   ) {
     return DEFAULT_CALLBACK_URL;

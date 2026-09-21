@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { CreateProjectDialog } from "@/components/work/create-project-dialog";
-import type { ProjectView } from "@/lib/db/mappers/work";
+import type { ProjectView } from "@/lib/work/views";
 import { cx } from "@/lib/ui/cx";
 
 export function WorkShell({

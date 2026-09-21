@@ -1,4 +1,4 @@
-import type { WorkPerson } from "@/lib/db/mappers/work";
+import type { WorkPerson } from "@/lib/work/views";
 
 export function UserChip({ person }: { person: WorkPerson | null }) {
   if (!person) {

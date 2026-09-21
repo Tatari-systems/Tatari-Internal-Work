@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type DragEvent } from "react";
 
-import { TaskRow } from "@/components/work/task-row";
+import { StatusChip } from "@/components/ui/status-chip";
 import { TASK_STATUSES, taskStatusLabel, type TaskStatus } from "@/lib/domain/work";
 import { moveTaskAction } from "@/lib/api/work";
-import type { TaskView } from "@/lib/db/mappers/work";
+import type { TaskView } from "@/lib/work/views";
 
 export function TaskBoard({
   tasks,

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DueChip } from "@/components/ui/due-chip";
 import { StatusChip } from "@/components/ui/status-chip";
 import { UserChip } from "@/components/ui/user-chip";
-import type { TaskView } from "@/lib/db/mappers/work";
+import type { TaskView } from "@/lib/work/views";
 
 export function TaskRow({
   task,

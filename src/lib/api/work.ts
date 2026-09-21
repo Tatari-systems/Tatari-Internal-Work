@@ -11,7 +11,7 @@ import {
   updateTask,
   type WorkMutationResult,
 } from "@/lib/services/work";
-import type { ProjectView, TaskView } from "@/lib/db/mappers/work";
+import type { ProjectView, TaskView } from "@/lib/work/views";
 
 function revalidateWork(projectSlug?: string, taskKey?: string) {
   revalidatePath("/work");

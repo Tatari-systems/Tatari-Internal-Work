@@ -5,16 +5,14 @@ Internal task tracker for Tatari ops (My work, inbox, projects, boards). This is
 ## Local setup
 
 ```bash
-pnpm install
+npm install
 cp .env.example .env
-# fill DATABASE_URL and DIRECT_URL (use a different Neon database than Compute)
-pnpm db:generate
-pnpm db:migrate:dev
-pnpm db:seed
-pnpm dev
+# fill NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+# run supabase/schema.sql once in the Supabase SQL editor
+npm run dev
 ```
 
-Open http://localhost:3000 — it goes to `/work`. Google OAuth is paused for local preview.
+Open http://localhost:3000 — it goes to `/work`. Sign in with an `@tatari.systems` email.
 
 ## Put this in the other Cursor agent
 

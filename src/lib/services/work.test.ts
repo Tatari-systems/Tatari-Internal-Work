@@ -1,18 +1,18 @@
-import { Prisma } from "@/generated/prisma/client";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { createTask, moveTask, createProject } from "./work";
+import type { AuditInsert, ProjectRecord, TaskRecord, WorkDatabase } from "@/lib/db/types";
+import { createProject, createTask, moveTask } from "./work";
 
 const projectId = "00000000-0000-4000-8000-000000000201";
 const workspaceId = "00000000-0000-4000-8000-000000000200";
 const actor = { id: "00000000-0000-4000-8000-000000000110", role: "reviewer" };
 const taskId = "00000000-0000-4000-8000-000000000301";
 
-function createStore() {
+function createDatabase() {
   let taskSeq = 0;
-  const tasks: Array<Record<string, unknown>> = [];
-  const audits: unknown[] = [];
-  const projects = [
+  const tasks: TaskRecord[] = [];
+  const audits: AuditInsert[] = [];
+  const projects: ProjectRecord[] = [
     {
       id: projectId,
       workspaceId,
@@ -21,113 +21,110 @@ function createStore() {
       description: null,
       position: 1,
       archivedAt: null,
-      createdAt: new Date("2026-09-15T00:00:00.000Z"),
+      createdAt: "2026-09-15T00:00:00.000Z",
     },
   ];
 
-  const store = {
-    workspace: {
-      findUnique: vi.fn(async () => ({
-        id: workspaceId,
-        slug: "tatari",
-        name: "Tatari",
-        taskSeq,
-      })),
-      update: vi.fn(async () => {
-        taskSeq += 1;
-        return {
-          id: workspaceId,
-          slug: "tatari",
-          name: "Tatari",
-          taskSeq,
-        };
-      }),
+  const db: WorkDatabase = {
+    getWorkspaceBySlug: async () => ({
+      id: workspaceId,
+      slug: "tatari",
+      name: "Tatari",
+      taskSeq,
+    }),
+    incrementTaskSeq: async () => {
+      taskSeq += 1;
+      return taskSeq;
     },
-    project: {
-      findMany: vi.fn(async () => projects),
-      findFirst: vi.fn(async (args: unknown) => {
-        const id = (args as { where?: { id?: string } }).where?.id;
-        return projects.find((project) => project.id === id) ?? null;
-      }),
-      create: vi.fn(),
-      update: vi.fn(),
+    listProjects: async () => projects,
+    getProjectBySlug: async (_workspaceId, slug) =>
+      projects.find((project) => project.slug === slug) ?? null,
+    getProjectById: async (id) =>
+      projects.find((project) => project.id === id) ?? null,
+    createProject: async (data) => {
+      const project: ProjectRecord = {
+        id: "00000000-0000-4000-8000-000000000299",
+        workspaceId: data.workspaceId,
+        name: data.name,
+        slug: data.slug,
+        description: data.description ?? null,
+        position: projects.length + 1,
+        archivedAt: null,
+        createdAt: "2026-09-15T00:00:00.000Z",
+      };
+      projects.push(project);
+      return project;
     },
-    task: {
-      findMany: vi.fn(async () => tasks),
-      findFirst: vi.fn(async (args: unknown) => {
-        const id = (args as { where?: { id?: string } }).where?.id;
-        return tasks.find((task) => task.id === id) ?? null;
-      }),
-      aggregate: vi.fn(async () => ({ _max: { position: null } })),
-      create: vi.fn(
-        async ({ data }: { data: Record<string, unknown> }) => {
-          const record = {
-            id: taskId,
-            number: data.number,
-            title: data.title,
-            description: data.description ?? null,
-            status: data.status,
-            priority: data.priority,
-            dueAt: data.dueAt ?? null,
-            completedAt: data.completedAt ?? null,
-            position: data.position,
-            isTestData: false,
-            createdAt: new Date("2026-09-15T12:00:00.000Z"),
-            updatedAt: new Date("2026-09-15T12:00:00.000Z"),
-            project: {
-              id: projectId,
-              name: "Operations",
-              slug: "operations",
-            },
-            assignee: null,
-            createdBy: {
-              id: actor.id,
-              email: "ops@tatari.test",
-              displayName: "Ops",
-            },
-          };
-          tasks.push(record);
-          return record;
-        },
+    archiveProject: async (id, archivedAt) => {
+      const project = projects.find((item) => item.id === id);
+      if (!project) {
+        throw new Error("missing project");
+      }
+      project.archivedAt = archivedAt;
+      return project;
+    },
+    listAssignees: async () => [],
+    getActivePerson: async () => null,
+    listProjectTasks: async (id) =>
+      tasks.filter((task) => task.project.id === id),
+    listMyWork: async (actorId) =>
+      tasks.filter(
+        (task) => task.assignee?.id === actorId && task.status !== "done",
       ),
-      update: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: { id: string };
-          data: Record<string, unknown>;
-        }) => {
-          const task = tasks.find((item) => item.id === where.id);
-          if (!task) {
-            throw new Error("missing task");
-          }
-          Object.assign(task, data);
-          return task;
+    listInbox: async () =>
+      tasks.filter((task) => !task.assignee && task.status !== "done"),
+    getTaskByNumber: async (_workspaceId, number) =>
+      tasks.find((task) => task.number === number) ?? null,
+    getTaskById: async (id) => tasks.find((task) => task.id === id) ?? null,
+    maxPosition: async () => 0,
+    createTask: async (data) => {
+      const record: TaskRecord = {
+        id: taskId,
+        number: data.number,
+        title: data.title,
+        description: data.description ?? null,
+        status: data.status,
+        priority: data.priority,
+        dueAt: data.dueAt,
+        completedAt: data.completedAt,
+        position: data.position,
+        isTestData: false,
+        createdAt: "2026-09-15T12:00:00.000Z",
+        updatedAt: "2026-09-15T12:00:00.000Z",
+        project: {
+          id: projectId,
+          name: "Operations",
+          slug: "operations",
         },
-      ),
+        assignee: null,
+        createdBy: {
+          id: actor.id,
+          email: "ops@tatari.test",
+          displayName: "Ops",
+        },
+      };
+      tasks.push(record);
+      return record;
     },
-    internalUser: {
-      findMany: vi.fn(async () => []),
-      findFirst: vi.fn(async () => null),
+    updateTask: async (id, data) => {
+      const task = tasks.find((item) => item.id === id);
+      if (!task) {
+        throw new Error("missing task");
+      }
+      Object.assign(task, data);
+      return task;
     },
-    auditLog: {
-      create: vi.fn(async ({ data }: { data: unknown }) => {
-        audits.push(data);
-        return { id: "audit-1" };
-      }),
+    insertAudit: async (data) => {
+      audits.push(data);
     },
-    $transaction: vi.fn(async (fn: (s: typeof store) => Promise<unknown>) =>
-      fn(store),
-    ),
   };
 
-  return { store: store as never, tasks, audits, getTaskSeq: () => taskSeq };
+  return { db, tasks, audits, getTaskSeq: () => taskSeq };
 }
 
 describe("createTask", () => {
   it("allocates sequential TAT numbers and writes an audit row", async () => {
-    const { store, audits, getTaskSeq } = createStore();
+    const { db, audits, getTaskSeq } = createDatabase();
 
     const first = await createTask(
       {
@@ -135,7 +132,7 @@ describe("createTask", () => {
         title: "First work item",
       },
       actor,
-      { prisma: store },
+      { db },
     );
     const second = await createTask(
       {
@@ -143,7 +140,7 @@ describe("createTask", () => {
         title: "Second work item",
       },
       actor,
-      { prisma: store },
+      { db },
     );
 
     expect(first.ok).toBe(true);
@@ -159,7 +156,7 @@ describe("createTask", () => {
   });
 
   it("rejects unknown fields before writing", async () => {
-    const { store } = createStore();
+    const { db, tasks } = createDatabase();
     const result = await createTask(
       {
         projectId,
@@ -168,7 +165,7 @@ describe("createTask", () => {
         extra: true,
       },
       actor,
-      { prisma: store },
+      { db },
     );
 
     expect(result.ok).toBe(false);
@@ -178,11 +175,11 @@ describe("createTask", () => {
 
 describe("moveTask", () => {
   it("sets completedAt when moving to done and clears it on reopen", async () => {
-    const { store } = createStore();
+    const { db } = createDatabase();
     const created = await createTask(
       { projectId, title: "Ship it" },
       actor,
-      { prisma: store },
+      { db },
     );
 
     expect(created.ok).toBe(true);
@@ -194,7 +191,7 @@ describe("moveTask", () => {
     const done = await moveTask(
       { taskId: created.data.id, status: "done", position: 1000 },
       actor,
-      { prisma: store, now },
+      { db, now },
     );
 
     expect(done.ok).toBe(true);
@@ -206,7 +203,7 @@ describe("moveTask", () => {
     const reopened = await moveTask(
       { taskId: created.data.id, status: "todo", position: 2000 },
       actor,
-      { prisma: store, now },
+      { db, now },
     );
 
     expect(reopened.ok).toBe(true);
@@ -218,22 +215,16 @@ describe("moveTask", () => {
 
 describe("createProject", () => {
   it("forbids non-admins", async () => {
-    const { store } = createStore();
+    const { db } = createDatabase();
     const result = await createProject(
       { name: "Legal", slug: "legal" },
       actor,
-      { prisma: store },
+      { db },
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toBe("forbidden");
     }
-  });
-});
-
-describe("Prisma decimal helper", () => {
-  it("keeps position as a decimal-compatible number", () => {
-    expect(new Prisma.Decimal("1000.000000").toFixed(6)).toBe("1000.000000");
   });
 });

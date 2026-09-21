@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusChip } from "@/components/ui/status-chip";
 import { TASK_PRIORITIES, TASK_STATUSES, taskStatusLabel } from "@/lib/domain/work";
 import { moveTaskAction, updateTaskAction } from "@/lib/api/work";
-import type { TaskView, WorkPerson } from "@/lib/db/mappers/work";
+import type { TaskView, WorkPerson } from "@/lib/work/views";
 
 export function TaskDrawer({
   task,

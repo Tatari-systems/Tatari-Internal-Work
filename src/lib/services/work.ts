@@ -1,5 +1,3 @@
-import { Prisma } from "@/generated/prisma/client";
-
 import { canAdminister } from "@/lib/domain/roles";
 import {
   WORKSPACE_SLUG,
@@ -8,24 +6,25 @@ import {
   isTaskStatus,
   parseTaskKey,
 } from "@/lib/domain/work";
-import { getDirectPrisma, getPrisma } from "@/lib/db/client";
-import { buildAuditLogCreate } from "@/lib/db/mappers/internal-records";
+import { getWorkDatabase } from "@/lib/db/supabase-work-db";
+import type { FieldErrorMap, WorkDatabase, WorkPerson } from "@/lib/db/types";
 import {
-  mapCreateProjectInput,
-  mapCreateTaskInput,
-  mapMoveTaskInput,
+  parseArchiveProjectInput,
+  parseCreateProjectInput,
+  parseCreateTaskInput,
+  parseMoveTaskInput,
+  parseUpdateTaskInput,
+} from "@/lib/work/parse";
+import {
   mapProjectView,
   mapTaskView,
-  mapUpdateTaskInput,
   nextCompletedAt,
+  toPositionString,
   type ProjectView,
   type TaskView,
-  type WorkPerson,
-} from "@/lib/db/mappers/work";
-import {
-  fieldErrorsFromZod,
-  type FieldErrorMap,
-} from "@/lib/requirements/field-errors";
+} from "@/lib/work/views";
+
+export type { ProjectView, TaskView, WorkPerson };
 
 export type WorkActor = {
   id: string;
@@ -40,140 +39,10 @@ export type WorkMutationResult<T> =
   | { ok: false; error: "conflict"; formError: string }
   | { ok: false; error: "server"; formError: string };
 
-const personSelect = {
-  id: true,
-  email: true,
-  displayName: true,
-} as const;
-
-const projectSelect = {
-  id: true,
-  name: true,
-  slug: true,
-  description: true,
-  position: true,
-  archivedAt: true,
-  createdAt: true,
-} as const;
-
-const taskSelect = {
-  id: true,
-  number: true,
-  title: true,
-  description: true,
-  status: true,
-  priority: true,
-  dueAt: true,
-  completedAt: true,
-  position: true,
-  isTestData: true,
-  createdAt: true,
-  updatedAt: true,
-  project: {
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-    },
-  },
-  assignee: { select: personSelect },
-  createdBy: { select: personSelect },
-} as const;
-
-type TaskRecord = {
-  id: string;
-  number: number;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  dueAt: Date | null;
-  completedAt: Date | null;
-  position: Prisma.Decimal;
-  isTestData: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  project: { id: string; name: string; slug: string };
-  assignee: WorkPerson | null;
-  createdBy: WorkPerson;
+type WorkDeps = {
+  db?: WorkDatabase;
+  now?: Date;
 };
-
-type ProjectRecord = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  position: number;
-  archivedAt: Date | null;
-  createdAt: Date;
-};
-
-type WorkspaceRecord = {
-  id: string;
-  slug: string;
-  name: string;
-  taskSeq: number;
-};
-
-type WorkStore = {
-  workspace: {
-    findUnique: (args: {
-      where: { slug: string };
-      select: { id: true; slug: true; name: true; taskSeq: true };
-    }) => Promise<WorkspaceRecord | null>;
-    update: (args: {
-      where: { id: string };
-      data: { taskSeq: { increment: number } };
-      select: { id: true; slug: true; name: true; taskSeq: true };
-    }) => Promise<WorkspaceRecord>;
-  };
-  project: {
-    findMany: (args: unknown) => Promise<ProjectRecord[]>;
-    findFirst: (args: unknown) => Promise<
-      | (ProjectRecord & {
-          workspaceId: string;
-        })
-      | null
-    >;
-    create: (args: {
-      data: Prisma.ProjectUncheckedCreateInput;
-      select: typeof projectSelect;
-    }) => Promise<ProjectRecord>;
-    update: (args: {
-      where: { id: string };
-      data: { archivedAt: Date };
-      select: typeof projectSelect;
-    }) => Promise<ProjectRecord>;
-  };
-  task: {
-    findMany: (args: unknown) => Promise<TaskRecord[]>;
-    findFirst: (args: unknown) => Promise<TaskRecord | null>;
-    aggregate: (args: unknown) => Promise<{
-      _max: { position: Prisma.Decimal | null };
-    }>;
-    create: (args: {
-      data: Prisma.TaskUncheckedCreateInput;
-      select: typeof taskSelect;
-    }) => Promise<TaskRecord>;
-    update: (args: {
-      where: { id: string };
-      data: Prisma.TaskUncheckedUpdateInput;
-      select: typeof taskSelect;
-    }) => Promise<TaskRecord>;
-  };
-  internalUser: {
-    findMany: (args: unknown) => Promise<WorkPerson[]>;
-    findFirst: (args: unknown) => Promise<WorkPerson | null>;
-  };
-  auditLog: {
-    create: (args: {
-      data: Prisma.AuditLogUncheckedCreateInput;
-    }) => Promise<unknown>;
-  };
-  $transaction: <T>(fn: (store: WorkStore) => Promise<T>) => Promise<T>;
-};
-
-const LIST_TAKE = 100;
 
 function validationError(
   fieldErrors: FieldErrorMap,
@@ -181,17 +50,12 @@ function validationError(
   return { ok: false, error: "validation", fieldErrors };
 }
 
-function fromZod(error: { issues: { path: PropertyKey[]; message: string }[] }) {
-  return validationError(
-    fieldErrorsFromZod(error as unknown as import("zod").ZodError),
-  );
+async function resolveDb(db?: WorkDatabase): Promise<WorkDatabase> {
+  return db ?? getWorkDatabase();
 }
 
-async function requireWorkspace(store: WorkStore): Promise<WorkspaceRecord> {
-  const workspace = await store.workspace.findUnique({
-    where: { slug: WORKSPACE_SLUG },
-    select: { id: true, slug: true, name: true, taskSeq: true },
-  });
+async function requireWorkspace(db: WorkDatabase) {
+  const workspace = await db.getWorkspaceBySlug(WORKSPACE_SLUG);
 
   if (!workspace) {
     throw new Error("Tatari workspace is not seeded");
@@ -200,109 +64,65 @@ async function requireWorkspace(store: WorkStore): Promise<WorkspaceRecord> {
   return workspace;
 }
 
-function toTaskView(task: TaskRecord): TaskView {
-  return mapTaskView(task);
-}
-
 export async function listProjects(
   options: { includeArchived?: boolean } = {},
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<ProjectView[]> {
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-  const workspace = await requireWorkspace(prisma);
-  const projects = await prisma.project.findMany({
-    where: {
-      workspaceId: workspace.id,
-      ...(options.includeArchived ? {} : { archivedAt: null }),
-    },
-    orderBy: [{ position: "asc" }, { name: "asc" }],
-    select: projectSelect,
-    take: LIST_TAKE,
-  });
+  const db = await resolveDb(deps.db);
+  const workspace = await requireWorkspace(db);
+  const projects = await db.listProjects(
+    workspace.id,
+    Boolean(options.includeArchived),
+  );
 
   return projects.map(mapProjectView);
 }
 
 export async function getProjectBySlug(
   slug: string,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<ProjectView | null> {
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-  const workspace = await requireWorkspace(prisma);
-  const project = await prisma.project.findFirst({
-    where: { workspaceId: workspace.id, slug },
-    select: { ...projectSelect, workspaceId: true },
-  });
+  const db = await resolveDb(deps.db);
+  const workspace = await requireWorkspace(db);
+  const project = await db.getProjectBySlug(workspace.id, slug);
 
   return project ? mapProjectView(project) : null;
 }
 
 export async function listAssignees(
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<WorkPerson[]> {
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-
-  return prisma.internalUser.findMany({
-    where: { isActive: true },
-    orderBy: [{ displayName: "asc" }, { email: "asc" }],
-    select: personSelect,
-    take: LIST_TAKE,
-  });
+  const db = await resolveDb(deps.db);
+  return db.listAssignees();
 }
 
 export async function listProjectTasks(
   projectId: string,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<TaskView[]> {
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-  const tasks = await prisma.task.findMany({
-    where: { projectId },
-    orderBy: [{ status: "asc" }, { position: "asc" }, { createdAt: "asc" }],
-    select: taskSelect,
-    take: LIST_TAKE,
-  });
-
-  return tasks.map(toTaskView);
+  const db = await resolveDb(deps.db);
+  const tasks = await db.listProjectTasks(projectId);
+  return tasks.map(mapTaskView);
 }
 
 export async function listMyWork(
   actorId: string,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<TaskView[]> {
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-  const tasks = await prisma.task.findMany({
-    where: {
-      assigneeId: actorId,
-      status: { not: "done" },
-    },
-    orderBy: [{ dueAt: "asc" }, { createdAt: "asc" }],
-    select: taskSelect,
-    take: LIST_TAKE,
-  });
-
-  return tasks.map(toTaskView);
+  const db = await resolveDb(deps.db);
+  const tasks = await db.listMyWork(actorId);
+  return tasks.map(mapTaskView);
 }
 
-export async function listInbox(
-  deps: { prisma?: WorkStore } = {},
-): Promise<TaskView[]> {
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-  const tasks = await prisma.task.findMany({
-    where: {
-      assigneeId: null,
-      status: { not: "done" },
-    },
-    orderBy: [{ createdAt: "desc" }],
-    select: taskSelect,
-    take: LIST_TAKE,
-  });
-
-  return tasks.map(toTaskView);
+export async function listInbox(deps: WorkDeps = {}): Promise<TaskView[]> {
+  const db = await resolveDb(deps.db);
+  const tasks = await db.listInbox();
+  return tasks.map(mapTaskView);
 }
 
 export async function getTaskByKey(
   key: string,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<TaskView | null> {
   const number = parseTaskKey(key);
 
@@ -310,20 +130,17 @@ export async function getTaskByKey(
     return null;
   }
 
-  const prisma = deps.prisma ?? (getPrisma() as unknown as WorkStore);
-  const workspace = await requireWorkspace(prisma);
-  const task = await prisma.task.findFirst({
-    where: { workspaceId: workspace.id, number },
-    select: taskSelect,
-  });
+  const db = await resolveDb(deps.db);
+  const workspace = await requireWorkspace(db);
+  const task = await db.getTaskByNumber(workspace.id, number);
 
-  return task ? toTaskView(task) : null;
+  return task ? mapTaskView(task) : null;
 }
 
 export async function createProject(
   input: unknown,
   actor: WorkActor,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<WorkMutationResult<ProjectView>> {
   if (!canAdminister(actor.role)) {
     return {
@@ -333,29 +150,15 @@ export async function createProject(
     };
   }
 
-  const parsed = (() => {
-    try {
-      return { ok: true as const, data: mapCreateProjectInput(input) };
-    } catch (error) {
-      if (error && typeof error === "object" && "issues" in error) {
-        return fromZod(error as { issues: { path: PropertyKey[]; message: string }[] });
-      }
-      throw error;
-    }
-  })();
-
-  if (!("data" in parsed)) {
-    return parsed;
+  const parsed = parseCreateProjectInput(input);
+  if (!parsed.ok) {
+    return validationError(parsed.fieldErrors);
   }
 
-  const prisma = deps.prisma ?? (getDirectPrisma() as unknown as WorkStore);
-
   try {
-    const workspace = await requireWorkspace(prisma);
-    const existing = await prisma.project.findFirst({
-      where: { workspaceId: workspace.id, slug: parsed.data.slug },
-      select: { ...projectSelect, workspaceId: true },
-    });
+    const db = await resolveDb(deps.db);
+    const workspace = await requireWorkspace(db);
+    const existing = await db.getProjectBySlug(workspace.id, parsed.data.slug);
 
     if (existing) {
       return {
@@ -365,30 +168,21 @@ export async function createProject(
       };
     }
 
-    const project = await prisma.$transaction(async (tx) => {
-      const created = await tx.project.create({
-        data: {
-          workspaceId: workspace.id,
-          name: parsed.data.name,
-          slug: parsed.data.slug,
-          description: parsed.data.description,
-          createdById: actor.id,
-        },
-        select: projectSelect,
-      });
+    const project = await db.createProject({
+      workspaceId: workspace.id,
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      description: parsed.data.description,
+      createdById: actor.id,
+    });
 
-      await tx.auditLog.create({
-        data: buildAuditLogCreate({
-          entityType: "project",
-          entityId: created.id,
-          action: "created",
-          beforeStatus: null,
-          afterStatus: "active",
-          actorId: actor.id,
-        }),
-      });
-
-      return created;
+    await db.insertAudit({
+      entityType: "project",
+      entityId: project.id,
+      action: "created",
+      beforeStatus: null,
+      afterStatus: "active",
+      actorId: actor.id,
     });
 
     return { ok: true, data: mapProjectView(project) };
@@ -405,7 +199,7 @@ export async function createProject(
 export async function archiveProject(
   input: unknown,
   actor: WorkActor,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<WorkMutationResult<ProjectView>> {
   if (!canAdminister(actor.role)) {
     return {
@@ -415,45 +209,29 @@ export async function archiveProject(
     };
   }
 
-  const projectId =
-    typeof input === "object" && input && "projectId" in input
-      ? String((input as { projectId: unknown }).projectId)
-      : "";
-
-  if (!projectId) {
-    return validationError({ projectId: ["Project is required"] });
-  }
-
-  const prisma = deps.prisma ?? (getDirectPrisma() as unknown as WorkStore);
-  const project = await prisma.project.findFirst({
-    where: { id: projectId },
-    select: { ...projectSelect, workspaceId: true },
-  });
-
-  if (!project) {
-    return { ok: false, error: "not_found", formError: "Project not found." };
+  const parsed = parseArchiveProjectInput(input);
+  if (!parsed.ok) {
+    return validationError(parsed.fieldErrors);
   }
 
   try {
-    const archived = await prisma.$transaction(async (tx) => {
-      const updated = await tx.project.update({
-        where: { id: project.id },
-        data: { archivedAt: new Date() },
-        select: projectSelect,
-      });
+    const db = await resolveDb(deps.db);
+    const project = await db.getProjectById(parsed.data.projectId);
 
-      await tx.auditLog.create({
-        data: buildAuditLogCreate({
-          entityType: "project",
-          entityId: updated.id,
-          action: "archived",
-          beforeStatus: "active",
-          afterStatus: "archived",
-          actorId: actor.id,
-        }),
-      });
+    if (!project) {
+      return { ok: false, error: "not_found", formError: "Project not found." };
+    }
 
-      return updated;
+    const archivedAt = (deps.now ?? new Date()).toISOString();
+    const archived = await db.archiveProject(project.id, archivedAt);
+
+    await db.insertAudit({
+      entityType: "project",
+      entityId: archived.id,
+      action: "archived",
+      beforeStatus: "active",
+      afterStatus: "archived",
+      actorId: actor.id,
     });
 
     return { ok: true, data: mapProjectView(archived) };
@@ -470,27 +248,16 @@ export async function archiveProject(
 export async function createTask(
   input: unknown,
   actor: WorkActor,
-  deps: { prisma?: WorkStore; now?: Date } = {},
+  deps: WorkDeps = {},
 ): Promise<WorkMutationResult<TaskView>> {
-  let parsed;
-  try {
-    parsed = mapCreateTaskInput(input);
-  } catch (error) {
-    if (error && typeof error === "object" && "issues" in error) {
-      return fromZod(
-        error as { issues: { path: PropertyKey[]; message: string }[] },
-      );
-    }
-    throw error;
+  const parsed = parseCreateTaskInput(input);
+  if (!parsed.ok) {
+    return validationError(parsed.fieldErrors);
   }
 
-  const prisma = deps.prisma ?? (getDirectPrisma() as unknown as WorkStore);
-
   try {
-    const project = await prisma.project.findFirst({
-      where: { id: parsed.projectId },
-      select: { ...projectSelect, workspaceId: true },
-    });
+    const db = await resolveDb(deps.db);
+    const project = await db.getProjectById(parsed.data.projectId);
 
     if (!project || project.archivedAt) {
       return {
@@ -500,12 +267,8 @@ export async function createTask(
       };
     }
 
-    if (parsed.assigneeId) {
-      const assignee = await prisma.internalUser.findFirst({
-        where: { id: parsed.assigneeId, isActive: true },
-        select: personSelect,
-      });
-
+    if (parsed.data.assigneeId) {
+      const assignee = await db.getActivePerson(parsed.data.assigneeId);
       if (!assignee) {
         return validationError({
           assigneeId: ["Assignee must be an active internal user"],
@@ -513,58 +276,35 @@ export async function createTask(
       }
     }
 
-    const aggregate = await prisma.task.aggregate({
-      where: { projectId: project.id, status: parsed.status },
-      _max: { position: true },
-    });
-    const nextPosition = new Prisma.Decimal(
-      (
-        Number(aggregate._max.position ?? 0) + 1000
-      ).toFixed(6),
-    );
-
-    const task = await prisma.$transaction(async (tx) => {
-      const workspace = await tx.workspace.update({
-        where: { id: project.workspaceId },
-        data: { taskSeq: { increment: 1 } },
-        select: { id: true, slug: true, name: true, taskSeq: true },
-      });
-
-      const created = await tx.task.create({
-        data: {
-          workspaceId: workspace.id,
-          projectId: project.id,
-          number: workspace.taskSeq,
-          title: parsed.title,
-          description: parsed.description,
-          status: parsed.status,
-          priority: parsed.priority,
-          assigneeId: parsed.assigneeId,
-          createdById: actor.id,
-          dueAt: parsed.dueAt,
-          completedAt:
-            parsed.status === "done" ? (deps.now ?? new Date()) : null,
-          position: nextPosition,
-        },
-        select: taskSelect,
-      });
-
-      await tx.auditLog.create({
-        data: buildAuditLogCreate({
-          entityType: "task",
-          entityId: created.id,
-          action: "created",
-          beforeStatus: null,
-          afterStatus: created.status,
-          actorId: actor.id,
-          metadata: { key: formatTaskKey(created.number) },
-        }),
-      });
-
-      return created;
+    const now = deps.now ?? new Date();
+    const maxPosition = await db.maxPosition(project.id, parsed.data.status);
+    const number = await db.incrementTaskSeq(project.workspaceId);
+    const created = await db.createTask({
+      workspaceId: project.workspaceId,
+      projectId: project.id,
+      number,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      status: parsed.data.status,
+      priority: parsed.data.priority,
+      assigneeId: parsed.data.assigneeId,
+      createdById: actor.id,
+      dueAt: parsed.data.dueAt,
+      completedAt: parsed.data.status === "done" ? now.toISOString() : null,
+      position: toPositionString(maxPosition + 1000),
     });
 
-    return { ok: true, data: toTaskView(task) };
+    await db.insertAudit({
+      entityType: "task",
+      entityId: created.id,
+      action: "created",
+      beforeStatus: null,
+      afterStatus: created.status,
+      actorId: actor.id,
+      metadata: { key: formatTaskKey(created.number) },
+    });
+
+    return { ok: true, data: mapTaskView(created) };
   } catch (error) {
     console.error("createTask failed", error);
     return {
@@ -578,79 +318,51 @@ export async function createTask(
 export async function updateTask(
   input: unknown,
   actor: WorkActor,
-  deps: { prisma?: WorkStore } = {},
+  deps: WorkDeps = {},
 ): Promise<WorkMutationResult<TaskView>> {
-  let parsed;
-  try {
-    parsed = mapUpdateTaskInput(input);
-  } catch (error) {
-    if (error && typeof error === "object" && "issues" in error) {
-      return fromZod(
-        error as { issues: { path: PropertyKey[]; message: string }[] },
-      );
-    }
-    throw error;
-  }
-
-  const prisma = deps.prisma ?? (getDirectPrisma() as unknown as WorkStore);
-  const existing = await prisma.task.findFirst({
-    where: { id: parsed.taskId },
-    select: taskSelect,
-  });
-
-  if (!existing) {
-    return { ok: false, error: "not_found", formError: "Task not found." };
-  }
-
-  if (parsed.assigneeId) {
-    const assignee = await prisma.internalUser.findFirst({
-      where: { id: parsed.assigneeId, isActive: true },
-      select: personSelect,
-    });
-
-    if (!assignee) {
-      return validationError({
-        assigneeId: ["Assignee must be an active internal user"],
-      });
-    }
+  const parsed = parseUpdateTaskInput(input);
+  if (!parsed.ok) {
+    return validationError(parsed.fieldErrors);
   }
 
   try {
-    const task = await prisma.$transaction(async (tx) => {
-      const updated = await tx.task.update({
-        where: { id: existing.id },
-        data: {
-          ...(parsed.title !== undefined ? { title: parsed.title } : {}),
-          ...(parsed.description !== undefined
-            ? { description: parsed.description }
-            : {}),
-          ...(parsed.priority !== undefined ? { priority: parsed.priority } : {}),
-          ...(parsed.assigneeId !== undefined
-            ? { assigneeId: parsed.assigneeId }
-            : {}),
-          ...(parsed.dueAt !== undefined ? { dueAt: parsed.dueAt } : {}),
-        },
-        select: taskSelect,
-      });
+    const db = await resolveDb(deps.db);
+    const existing = await db.getTaskById(parsed.data.taskId);
 
-      await tx.auditLog.create({
-        data: buildAuditLogCreate({
-          entityType: "task",
-          entityId: updated.id,
-          action: "updated",
-          beforeStatus: existing.status,
-          afterStatus: updated.status,
-          actorId: actor.id,
-          metadata: {
-            assigneeId: parsed.assigneeId ?? undefined,
-          },
-        }),
-      });
+    if (!existing) {
+      return { ok: false, error: "not_found", formError: "Task not found." };
+    }
 
-      return updated;
+    if (parsed.data.assigneeId) {
+      const assignee = await db.getActivePerson(parsed.data.assigneeId);
+      if (!assignee) {
+        return validationError({
+          assigneeId: ["Assignee must be an active internal user"],
+        });
+      }
+    }
+
+    const updated = await db.updateTask(existing.id, {
+      title: parsed.data.title,
+      description: parsed.data.description,
+      priority: parsed.data.priority,
+      assigneeId: parsed.data.assigneeId,
+      dueAt: parsed.data.dueAt,
     });
 
-    return { ok: true, data: toTaskView(task) };
+    await db.insertAudit({
+      entityType: "task",
+      entityId: updated.id,
+      action: "updated",
+      beforeStatus: existing.status,
+      afterStatus: updated.status,
+      actorId: actor.id,
+      metadata: {
+        assigneeId: parsed.data.assigneeId ?? undefined,
+      },
+    });
+
+    return { ok: true, data: mapTaskView(updated) };
   } catch (error) {
     console.error("updateTask failed", error);
     return {
@@ -664,79 +376,58 @@ export async function updateTask(
 export async function moveTask(
   input: unknown,
   actor: WorkActor,
-  deps: { prisma?: WorkStore; now?: Date } = {},
+  deps: WorkDeps = {},
 ): Promise<WorkMutationResult<TaskView>> {
-  let parsed;
+  const parsed = parseMoveTaskInput(input);
+  if (!parsed.ok) {
+    return validationError(parsed.fieldErrors);
+  }
+
   try {
-    parsed = mapMoveTaskInput(input);
-  } catch (error) {
-    if (error && typeof error === "object" && "issues" in error) {
-      return fromZod(
-        error as { issues: { path: PropertyKey[]; message: string }[] },
-      );
+    const db = await resolveDb(deps.db);
+    const existing = await db.getTaskById(parsed.data.taskId);
+
+    if (!existing) {
+      return { ok: false, error: "not_found", formError: "Task not found." };
     }
-    throw error;
-  }
 
-  const prisma = deps.prisma ?? (getDirectPrisma() as unknown as WorkStore);
-  const existing = await prisma.task.findFirst({
-    where: { id: parsed.taskId },
-    select: taskSelect,
-  });
+    const currentStatus = existing.status;
 
-  if (!existing) {
-    return { ok: false, error: "not_found", formError: "Task not found." };
-  }
+    if (!isTaskStatus(currentStatus)) {
+      return {
+        ok: false,
+        error: "server",
+        formError: "Task has an unknown status.",
+      };
+    }
 
-  const currentStatus = existing.status;
+    if (!canTransitionTask(currentStatus, parsed.data.status)) {
+      return {
+        ok: false,
+        error: "conflict",
+        formError: `Cannot move from ${currentStatus} to ${parsed.data.status}.`,
+      };
+    }
 
-  if (!isTaskStatus(currentStatus)) {
-    return {
-      ok: false,
-      error: "server",
-      formError: "Task has an unknown status.",
-    };
-  }
-
-  if (!canTransitionTask(currentStatus, parsed.status)) {
-    return {
-      ok: false,
-      error: "conflict",
-      formError: `Cannot move from ${currentStatus} to ${parsed.status}.`,
-    };
-  }
-
-  const now = deps.now ?? new Date();
-
-  try {
-    const task = await prisma.$transaction(async (tx) => {
-      const updated = await tx.task.update({
-        where: { id: existing.id },
-        data: {
-          status: parsed.status,
-          position: parsed.position,
-          completedAt: nextCompletedAt(currentStatus, parsed.status, now),
-        },
-        select: taskSelect,
-      });
-
-      if (currentStatus !== parsed.status) {
-        await tx.auditLog.create({
-          data: buildAuditLogCreate({
-            entityType: "task",
-            entityId: updated.id,
-            action: "status_changed",
-            beforeStatus: currentStatus,
-            afterStatus: updated.status,
-            actorId: actor.id,
-          }),
-        });
-      }
-
-      return updated;
+    const now = deps.now ?? new Date();
+    const updated = await db.updateTask(existing.id, {
+      status: parsed.data.status,
+      position: toPositionString(parsed.data.position),
+      completedAt: nextCompletedAt(currentStatus, parsed.data.status, now),
     });
 
-    return { ok: true, data: toTaskView(task) };
+    if (currentStatus !== parsed.data.status) {
+      await db.insertAudit({
+        entityType: "task",
+        entityId: updated.id,
+        action: "status_changed",
+        beforeStatus: currentStatus,
+        afterStatus: updated.status,
+        actorId: actor.id,
+      });
+    }
+
+    return { ok: true, data: mapTaskView(updated) };
   } catch (error) {
     console.error("moveTask failed", error);
     return {

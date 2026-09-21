@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ConsoleChrome } from "@/components/console/console-chrome";
+import { TabSessionGuard } from "@/components/tab-session-guard";
 import { requireConsoleActor } from "@/lib/auth/console";
 
 export default async function ConsoleLayout({
@@ -9,8 +10,10 @@ export default async function ConsoleLayout({
   const actor = await requireConsoleActor();
 
   return (
-    <ConsoleChrome email={actor.email} displayName={actor.displayName}>
-      {children}
-    </ConsoleChrome>
+    <TabSessionGuard>
+      <ConsoleChrome email={actor.email} displayName={actor.displayName}>
+        {children}
+      </ConsoleChrome>
+    </TabSessionGuard>
   );
 }

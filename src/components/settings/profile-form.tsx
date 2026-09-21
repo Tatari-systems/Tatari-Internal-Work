@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signOutToHome } from "@/lib/auth/actions";
+import { TAB_STORAGE_KEY } from "@/lib/auth/tab-session";
 import { updateDisplayNameAction } from "@/lib/auth/settings-actions";
 
 export function ProfileSettingsForm({
@@ -78,6 +79,7 @@ export function ProfileSettingsForm({
           action={async () => {
             const confirmed = window.confirm("Sign out of Tatari Work?");
             if (confirmed) {
+              sessionStorage.removeItem(TAB_STORAGE_KEY);
               await signOutToHome();
             }
           }}

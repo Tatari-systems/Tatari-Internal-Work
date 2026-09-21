@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isTatariEmail, TATARI_EMAIL_DOMAIN } from "@/lib/auth/allowed-email";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { ensureInternalUser } from "@/lib/auth/internal-users";
+import { markTabHandshake, expireAuthSession } from "@/lib/auth/tab-session-actions";
 import { isMissingWorkSchema } from "@/lib/auth/login-errors";
 import { getSiteUrl, isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -60,6 +61,7 @@ async function finishAuthenticatedSession(
     };
   }
 
+  await markTabHandshake();
   redirect(callbackUrl);
 }
 
@@ -214,10 +216,6 @@ export async function signInWithGoogle(formData: FormData): Promise<AuthActionRe
 }
 
 export async function signOutToHome() {
-  if (isSupabaseConfigured()) {
-    const supabase = await createSupabaseServerClient();
-    await supabase.auth.signOut();
-  }
-
+  await expireAuthSession();
   redirect("/login");
 }

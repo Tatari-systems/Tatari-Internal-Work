@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; error?: string; session?: string }>;
 }) {
   const params = await searchParams;
   const callbackUrl = safeCallbackUrl(params.callbackUrl);
@@ -35,7 +35,7 @@ export default async function LoginPage({
     schemaMissing = true;
   }
 
-  if (actor) {
+  if (actor && params.session !== "expired") {
     redirect(callbackUrl);
   }
 

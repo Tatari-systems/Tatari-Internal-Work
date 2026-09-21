@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { isTatariEmail } from "@/lib/auth/allowed-email";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { ensureInternalUser } from "@/lib/auth/internal-users";
+import {
+  TAB_HANDSHAKE_COOKIE,
+  tabHandshakeCookieOptions,
+} from "@/lib/auth/tab-session";
 import { isMissingWorkSchema } from "@/lib/auth/login-errors";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -68,5 +72,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`/login?error=${errorCode}`, requestUrl.origin));
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  const redirectTo = NextResponse.redirect(new URL(next, requestUrl.origin));
+  redirectTo.cookies.set(
+    TAB_HANDSHAKE_COOKIE,
+    "1",
+    tabHandshakeCookieOptions(),
+  );
+  return redirectTo;
 }

@@ -1,36 +1,40 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { isTatariEmail } from "@/lib/auth/allowed-email";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { ensureInternalUser } from "@/lib/auth/internal-users";
+import { isMissingWorkSchema } from "@/lib/auth/login-errors";
 import {
   TAB_HANDSHAKE_COOKIE,
   tabHandshakeCookieOptions,
 } from "@/lib/auth/tab-session";
-import { isMissingWorkSchema } from "@/lib/auth/login-errors";
+import { createSupabaseProfileDatabase } from "@/lib/db/supabase-profiles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseCallbackClient,
+  getRequestOrigin,
+} from "@/lib/supabase/route";
 
-export async function GET(request: Request) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
-  const next = safeCallbackUrl(requestUrl.searchParams.get("next"));
+export async function GET(request: NextRequest) {
+  const origin = getRequestOrigin(request);
+  const code = request.nextUrl.searchParams.get("code");
+  const next = safeCallbackUrl(request.nextUrl.searchParams.get("next"));
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.redirect(new URL("/login?error=Configuration", requestUrl.origin));
+    return NextResponse.redirect(new URL("/login?error=Configuration", origin));
   }
 
-  const supabase = await createSupabaseServerClient();
+  const { supabase, redirect } = await createSupabaseCallbackClient(request);
 
   if (code) {
     try {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (error) {
-        return NextResponse.redirect(new URL("/login?error=OAuthCallback", requestUrl.origin));
+        return await redirect(new URL("/login?error=OAuthCallback", origin));
       }
     } catch {
-      return NextResponse.redirect(new URL("/login?error=OAuthCallback", requestUrl.origin));
+      return await redirect(new URL("/login?error=OAuthCallback", origin));
     }
   }
 
@@ -40,28 +44,31 @@ export async function GET(request: Request) {
     const result = await supabase.auth.getUser();
     user = result.data.user;
   } catch {
-    return NextResponse.redirect(new URL("/login?error=Callback", requestUrl.origin));
+    return await redirect(new URL("/login?error=Callback", origin));
   }
 
   if (!user?.email || !isTatariEmail(user.email)) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/login?error=DomainDenied", requestUrl.origin));
+    return await redirect(new URL("/login?error=DomainDenied", origin));
   }
 
   try {
-    const actor = await ensureInternalUser({
-      email: user.email,
-      displayName:
-        typeof user.user_metadata?.full_name === "string"
-          ? user.user_metadata.full_name
-          : typeof user.user_metadata?.display_name === "string"
-            ? user.user_metadata.display_name
-            : user.email,
-    });
+    const actor = await ensureInternalUser(
+      {
+        email: user.email,
+        displayName:
+          typeof user.user_metadata?.full_name === "string"
+            ? user.user_metadata.full_name
+            : typeof user.user_metadata?.display_name === "string"
+              ? user.user_metadata.display_name
+              : user.email,
+      },
+      { db: createSupabaseProfileDatabase(supabase) },
+    );
 
     if (!actor) {
       await supabase.auth.signOut();
-      return NextResponse.redirect(new URL("/login?error=AccessDenied", requestUrl.origin));
+      return await redirect(new URL("/login?error=AccessDenied", origin));
     }
   } catch (error) {
     if (!isMissingWorkSchema(error)) {
@@ -69,14 +76,14 @@ export async function GET(request: Request) {
     }
 
     const errorCode = isMissingWorkSchema(error) ? "SchemaMissing" : "Callback";
-    return NextResponse.redirect(new URL(`/login?error=${errorCode}`, requestUrl.origin));
+    return await redirect(new URL(`/login?error=${errorCode}`, origin));
   }
 
-  const redirectTo = NextResponse.redirect(new URL(next, requestUrl.origin));
-  redirectTo.cookies.set(
+  const response = await redirect(new URL(next, origin));
+  response.cookies.set(
     TAB_HANDSHAKE_COOKIE,
     "1",
     tabHandshakeCookieOptions(),
   );
-  return redirectTo;
+  return response;
 }

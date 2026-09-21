@@ -24,11 +24,22 @@ export function getSupabaseServiceRoleKey(): string | null {
 }
 
 export function getSiteUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    process.env.AUTH_URL?.trim() ||
-    "http://localhost:3000"
-  );
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (explicit && !/localhost|127\.0\.0\.1/i.test(explicit)) {
+    return explicit.replace(/\/$/, "");
+  }
+
+  const vercel =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
+    process.env.VERCEL_URL?.trim();
+
+  if (vercel) {
+    const host = vercel.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return `https://${host}`;
+  }
+
+  return explicit?.replace(/\/$/, "") || "http://localhost:3000";
 }
 
 export function isSupabaseConfigured(): boolean {

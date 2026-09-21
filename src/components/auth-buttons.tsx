@@ -1,13 +1,9 @@
 import { GoogleMark } from "@/components/google-mark";
-import { signInWithGoogle, signOutToHome } from "@/lib/auth/actions";
+import { signOutToHome } from "@/lib/auth/actions";
 
 export function GoogleSignInButton({ callbackUrl }: { callbackUrl: string }) {
   return (
-    <form
-      action={async (formData) => {
-        await signInWithGoogle(formData);
-      }}
-    >
+    <form action="/auth/google" method="get">
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <button
         type="submit"

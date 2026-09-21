@@ -182,39 +182,6 @@ export async function signUpWithPassword(formData: FormData): Promise<AuthAction
   );
 }
 
-export async function signInWithGoogle(formData: FormData): Promise<AuthActionResult> {
-  if (!isSupabaseConfigured()) {
-    return notConfigured();
-  }
-
-  const callbackUrl = safeCallbackUrl(String(formData.get("callbackUrl") ?? ""));
-  const supabase = await createSupabaseServerClient();
-  let data;
-  let error;
-
-  try {
-    const result = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(callbackUrl)}`,
-        queryParams: {
-          hd: TATARI_EMAIL_DOMAIN,
-        },
-      },
-    });
-    data = result.data;
-    error = result.error;
-  } catch {
-    return authServiceError();
-  }
-
-  if (error || !data.url) {
-    return { ok: false, formError: "Google sign-in could not be started." };
-  }
-
-  redirect(data.url);
-}
-
 export async function signOutToHome() {
   await expireAuthSession();
   redirect("/login");

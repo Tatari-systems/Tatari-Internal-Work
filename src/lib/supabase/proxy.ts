@@ -2,7 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { isTatariEmail } from "@/lib/auth/allowed-email";
-import { asBrowserSessionCookie } from "@/lib/supabase/cookies";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 function isServerActionRequest(request: NextRequest): boolean {
@@ -14,6 +13,11 @@ export async function updateSession(request: NextRequest) {
   const url = getSupabaseUrl();
   const key = getSupabaseAnonKey();
   const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith("/auth/")) {
+    return NextResponse.next({ request });
+  }
+
   const isWork = pathname === "/work" || pathname.startsWith("/work/");
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
@@ -42,7 +46,7 @@ export async function updateSession(request: NextRequest) {
         });
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, asBrowserSessionCookie(options));
+          response.cookies.set(name, value, options);
         });
         Object.entries(headers ?? {}).forEach(([header, headerValue]) => {
           response.headers.set(header, headerValue);

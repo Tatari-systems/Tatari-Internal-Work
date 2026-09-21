@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
-  signInWithGoogle,
   signInWithPassword,
   signUpWithPassword,
   type AuthActionResult,
@@ -29,7 +28,7 @@ export function AuthForm({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmEmail, setConfirmEmail] = useState(false);
-  const [pending, setPending] = useState<"password" | "google" | null>(null);
+  const [pending, setPending] = useState<"password" | null>(null);
 
   async function onPassword(formData: FormData) {
     setError(null);
@@ -42,17 +41,6 @@ export function AuthForm({
       setConfirmEmail(true);
       return;
     }
-
-    if (!result.ok) {
-      setError(result.formError);
-    }
-  }
-
-  async function onGoogle(formData: FormData) {
-    setError(null);
-    setPending("google");
-    const result = await signInWithGoogle(formData);
-    setPending(null);
 
     if (!result.ok) {
       setError(result.formError);
@@ -82,7 +70,7 @@ export function AuthForm({
         </p>
       ) : null}
 
-      <form action={onGoogle}>
+      <form action="/auth/google" method="get">
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <Button
           type="submit"
@@ -91,7 +79,7 @@ export function AuthForm({
           disabled={!configured || pending !== null}
         >
           <GoogleMark />
-          {pending === "google" ? "Redirecting…" : "Continue with Google"}
+          Continue with Google
         </Button>
       </form>
 

@@ -61,3 +61,6 @@ BUILD_SUMMARY.md
 # Windows
 Thumbs.db
 Desktop.ini
+
+.vercel
+.env*

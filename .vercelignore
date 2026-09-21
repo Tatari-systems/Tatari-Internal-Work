@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.git
+.cursor
+.next
+coverage
+test-results
+playwright-report
+.playwright-mcp

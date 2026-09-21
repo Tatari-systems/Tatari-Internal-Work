@@ -1,34 +1,128 @@
-# Tatari Work
+<p align="center">
+  <img src="public/tatari-logo.jpg" alt="Tatari" width="88" height="88" />
+</p>
 
-Internal task tracker for Tatari ops (My work, inbox, projects, boards). This is a separate product from the Compute Platform quote-to-commit app in `Tatari 1.5`.
+<h1 align="center">Tatari Work</h1>
 
-## Local setup
+<p align="center">
+  Internal task tracker for Tatari operations.<br />
+  My work, inbox, projects, and boards — company-wide, not a personal to-do list.
+</p>
+
+Tatari Work is a separate product from the Compute Platform quote-to-commit app in Tatari 1.5. This repo is the ops tracker only.
+
+## Product
+
+One Tatari workspace. Sign in with an `@tatari.systems` email. New accounts land as **admin**.
+
+| Surface | What it is |
+| --- | --- |
+| **My work** | Tasks assigned to you, grouped overdue / today / later |
+| **Inbox** | Open tasks with no assignee |
+| **Projects** | Boards for Tatari 1.5, Internal Work, Mining ops, and Pitch |
+| **Task** | `TAT-n` key, status, priority, due date, assignee |
+
+Statuses are `todo` → `in_progress` → `done`. Boards use HTML5 drag and drop. Assignees start as Dagim, Manish, Aarash, Glodi, and Yasha.
+
+## Stack
+
+| Layer | Choice |
+| --- | --- |
+| App | Next.js 16 App Router, React 19, Tailwind 4 |
+| Auth | Supabase Auth (email + password, Google) |
+| Data | Supabase Postgres via `@supabase/ssr` — no Prisma, Neon, or `pg` |
+| Access | `@tatari.systems` only; RLS allows authenticated users |
+| Tooling | npm, Vitest, Playwright |
+
+The app never talks to a raw Postgres URL. Auth and Work tables live in the same Supabase project.
+
+## Requirements
+
+- Node.js 24 or newer
+- npm
+- A Supabase project (Auth + SQL editor)
+
+## Setup
 
 ```bash
 npm install
 cp .env.example .env
-# fill NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
-# run supabase/schema.sql once in the Supabase SQL editor
+```
+
+Fill `.env`:
+
+```bash
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+NEXT_PUBLIC_SUPABASE_URL="https://YOUR_PROJECT_REF.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+```
+
+Do not put the service role key in this app.
+
+### 1. Database
+
+In the Supabase SQL editor, run [`supabase/schema.sql`](supabase/schema.sql) once. That creates `profiles`, `workspaces`, `projects`, `tasks`, `audit_logs`, RLS, the `TAT-n` counter, the four projects, and the team assignees.
+
+Re-run the same file after schema or seed changes; inserts are idempotent.
+
+### 2. Auth
+
+In **Authentication → URL Configuration**:
+
+- Site URL: `http://localhost:3000`
+- Redirect URLs: `http://localhost:3000/auth/callback`
+
+In **Authentication → Providers**:
+
+- Email: enable email + password. Turn off “Confirm email” if local sign-up should land in Work immediately.
+- Google: enable, then set the Client ID and secret. In Google Cloud, the authorized redirect is:
+
+  `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+
+Only `@tatari.systems` addresses are accepted. Everyone who registers gets admin.
+
+### 3. Run
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000 — it goes to `/work`. Sign in with an `@tatari.systems` email.
+Open [http://localhost:3000](http://localhost:3000). Unauthenticated visits go to `/login`, then into `/work`.
 
-## Put this in the other Cursor agent
+## Scripts
 
-File → Open Folder → `D:\DEV\Tatari\Tatari Work`
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Local app |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm run test:run` | Vitest |
+| `npm run test:e2e` | Playwright |
 
-That chat (`b0983f15-94b0-4fd3-b0b9-602217771a79`) should work in this folder, not in Tatari 1.5.
+## Layout
 
-## First GitHub push (no Cursor co-author)
-
-Use the terminal, not Cursor’s Commit button. Cursor’s commit hook can add `Co-authored-by: Cursor`, which shows Cursor as a GitHub contributor.
-
-```bash
-cd "D:\DEV\Tatari\Tatari Work"
-git add .
-git commit -m "feat: add Tatari internal work tracker"
-gh repo create tatari-work --private --source=. --remote=origin --push
+```
+src/app/(auth)          Login and signup
+src/app/auth/callback   Supabase OAuth callback
+src/app/(console)/work  My work, inbox, projects, task pages
+src/lib/auth            Email allowlist, session actor, server actions
+src/lib/supabase        Browser, server, and proxy clients
+src/lib/db              Supabase Work/profile stores
+src/lib/work            Input parse helpers and view mapping
+src/lib/services/work   Task and project mutations
+supabase/schema.sql     Tables, RLS, seed
+public/tatari-logo.jpg  Brand mark
 ```
 
-Check the commit with `git log -1` before pushing. If you see `Co-authored-by: Cursor`, do not push that commit.
+## Security
+
+- Anon key only in the client env. Never the service role.
+- Domain check is in the app (`isTatariEmail`), not only in Supabase dashboard settings.
+- Work routes require a session. Missing tables redirect to login with a setup message instead of crashing the sign-in action.
+- Seed profiles use `firstname@tatari.systems`. Signing up with that same email reuses the assignee row.
+
+## License
+
+Private. Internal Tatari use only.

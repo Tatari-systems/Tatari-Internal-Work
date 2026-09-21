@@ -72,16 +72,16 @@ export function TaskDrawer({
 
   return (
     <aside className="flex h-full flex-col rounded-card border border-border bg-bg-elevated">
-      <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-        <div>
+      <div className="flex min-w-0 items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div className="min-w-0">
           <p className="font-brand text-[11px] tracking-[0.18em] text-text-faint">
             {task.key}
           </p>
-          <h2 className="mt-2 font-display text-3xl leading-tight text-text">
+          <h2 className="mt-2 break-words font-display text-2xl leading-tight text-text">
             {task.title}
           </h2>
         </div>
-        <a href={closeHref} className="text-[13px] text-white/50 hover:text-text">
+        <a href={closeHref} className="shrink-0 text-[13px] text-white/50 hover:text-text">
           Close
         </a>
       </div>

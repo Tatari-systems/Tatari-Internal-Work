@@ -1,6 +1,18 @@
-export function DueChip({ dueAt }: { dueAt: string | null }) {
+import { cn } from "@/lib/ui/cn";
+
+export function DueChip({
+  dueAt,
+  className,
+}: {
+  dueAt: string | null;
+  className?: string;
+}) {
   if (!dueAt) {
-    return <span className="text-[11px] text-text-faint">No date</span>;
+    return (
+      <span className={cn("shrink-0 whitespace-nowrap text-[11px] text-text-faint", className)}>
+        No date
+      </span>
+    );
   }
 
   const due = new Date(dueAt);
@@ -16,9 +28,11 @@ export function DueChip({ dueAt }: { dueAt: string | null }) {
 
   return (
     <span
-      className={
-        overdue ? "text-[11px] text-danger" : "text-[11px] text-text-muted"
-      }
+      className={cn(
+        "shrink-0 whitespace-nowrap text-[11px]",
+        overdue ? "text-danger" : "text-text-muted",
+        className,
+      )}
     >
       {label}
     </span>

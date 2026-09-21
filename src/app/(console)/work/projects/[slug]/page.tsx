@@ -69,7 +69,13 @@ export default async function ProjectPage({
           </>
         }
       />
-      <div className={selected ? "grid gap-6 xl:grid-cols-[1fr_24rem]" : ""}>
+      <div
+        className={
+          selected
+            ? "grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]"
+            : "min-w-0"
+        }
+      >
         {view === "list" ? (
           <div className="space-y-3">
             {tasks.map((task) => (
@@ -85,6 +91,7 @@ export default async function ProjectPage({
         )}
         {selected ? (
           <TaskDrawer
+            key={selected.id}
             task={selected}
             people={people}
             closeHref={closeHref}

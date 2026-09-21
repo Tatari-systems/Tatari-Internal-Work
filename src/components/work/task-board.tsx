@@ -51,14 +51,15 @@ export function TaskBoard({
           {error}
         </p>
       ) : null}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="overflow-x-auto">
+        <div className="grid min-w-0 gap-4 sm:min-w-[48rem] sm:grid-cols-3">
         {TASK_STATUSES.map((status) => {
           const columnTasks = tasks.filter((task) => task.status === status);
 
           return (
             <section
               key={status}
-              className="min-h-72 rounded-card border border-white/6 bg-white/[0.02] p-4"
+              className="min-h-72 min-w-0 rounded-card border border-white/6 bg-white/[0.02] p-4"
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
@@ -96,6 +97,7 @@ export function TaskBoard({
             </section>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -124,29 +126,32 @@ function BoardCard({
       className="cursor-grab active:cursor-grabbing"
     >
       <Link href={`/work/projects/${projectSlug}?task=${task.key}`}>
-        <Card className="p-3.5 shadow-none transition-colors hover:border-white/16 hover:bg-white/[0.06]">
+        <Card className="min-w-0 overflow-hidden p-3.5 shadow-none transition-colors hover:border-white/16 hover:bg-white/[0.06]">
           <p className="font-brand text-[11px] tracking-[0.14em] text-text-faint">
             {task.key}
           </p>
-          <p className="mt-2 text-sm leading-5 text-text">{task.title}</p>
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              {task.assignee ? (
-                <Avatar className="size-6 text-[9px]" title={task.assignee.displayName ?? task.assignee.email}>
-                  <AvatarFallback>
-                    {initialsFrom(task.assignee.displayName, task.assignee.email)}
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                <span className="text-[11px] text-text-faint">Unassigned</span>
-              )}
-              {priorityLabel ? (
-                <Badge variant={priority === "high" ? "danger" : "muted"}>
-                  {priorityLabel}
-                </Badge>
-              ) : null}
-            </div>
-            <DueChip dueAt={task.dueAt} />
+          <p className="mt-2 break-words text-sm leading-5 text-text">{task.title}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            {task.assignee ? (
+              <Avatar className="size-6 shrink-0 text-[9px]" title={task.assignee.displayName ?? task.assignee.email}>
+                <AvatarFallback>
+                  {initialsFrom(task.assignee.displayName, task.assignee.email)}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <span className="min-w-0 truncate text-[11px] text-text-faint">
+                Unassigned
+              </span>
+            )}
+            {priorityLabel ? (
+              <Badge
+                className="shrink-0"
+                variant={priority === "high" ? "danger" : "muted"}
+              >
+                {priorityLabel}
+              </Badge>
+            ) : null}
+            <DueChip className="ml-auto" dueAt={task.dueAt} />
           </div>
         </Card>
       </Link>

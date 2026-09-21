@@ -90,10 +90,6 @@ export async function ensureInternalUser(
   const existing = await db.findByEmail(email);
 
   if (existing) {
-    if (existing.isActive && existing.role !== "admin") {
-      return toActor(await db.setRole(existing.id, "admin"));
-    }
-
     return toActor(existing);
   }
 
@@ -102,11 +98,11 @@ export async function ensureInternalUser(
   const created = await db.create({
     email,
     displayName,
-    role: "admin",
+    role: "reviewer",
   });
 
   return toActor({
     ...created,
-    role: isInternalRole(created.role) ? created.role : "admin",
+    role: isInternalRole(created.role) ? created.role : "reviewer",
   });
 }

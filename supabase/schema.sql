@@ -7,7 +7,7 @@ create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   display_name text,
-  role text not null default 'admin',
+  role text not null default 'reviewer',
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -121,8 +121,7 @@ drop policy if exists audit_logs_authenticated on public.audit_logs;
 create policy audit_logs_authenticated on public.audit_logs
   for all to authenticated using (true) with check (true);
 
-alter table public.profiles alter column role set default 'admin';
-update public.profiles set role = 'admin' where role is distinct from 'admin';
+alter table public.profiles alter column role set default 'reviewer';
 
 insert into public.profiles (id, email, display_name, role, is_active)
 values

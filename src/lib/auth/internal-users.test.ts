@@ -40,6 +40,8 @@ describe("internal user access", () => {
       countActive: async () => 1,
       create: async () => reviewer,
       setRole: async () => reviewer,
+      listMembers: async () => [],
+      updateDisplayName: async () => reviewer,
     };
 
     await expect(
@@ -53,6 +55,8 @@ describe("internal user access", () => {
       countActive: async () => 1,
       create: async () => reviewer,
       setRole: async () => reviewer,
+      listMembers: async () => [],
+      updateDisplayName: async () => reviewer,
     };
 
     await expect(
@@ -122,7 +126,7 @@ describe("Tatari email allowlist", () => {
 });
 
 describe("ensureInternalUser", () => {
-  it("provisions every new person as admin", async () => {
+  it("provisions every new person as a reviewer", async () => {
     const created: unknown[] = [];
     const db = {
       findByEmail: async () => null,
@@ -137,12 +141,16 @@ describe("ensureInternalUser", () => {
           id: "00000000-0000-4000-8000-000000000301",
           email: "ops@tatari.systems",
           displayName: "Ops",
-          role: "admin",
+          role: "reviewer",
           isActive: true,
         };
       },
       setRole: async () => {
         throw new Error("should not promote on create");
+      },
+      listMembers: async () => [],
+      updateDisplayName: async () => {
+        throw new Error("should not update");
       },
     };
 
@@ -153,12 +161,12 @@ describe("ensureInternalUser", () => {
       ),
     ).resolves.toMatchObject({
       email: "ops@tatari.systems",
-      role: "admin",
+      role: "reviewer",
     });
-    expect(created[0]).toMatchObject({ role: "admin" });
+    expect(created[0]).toMatchObject({ role: "reviewer" });
   });
 
-  it("promotes an existing non-admin on sign-in", async () => {
+  it("does not promote an existing reviewer on sign-in", async () => {
     const existing = {
       ...reviewer,
       email: "ops@tatari.systems",
@@ -169,18 +177,18 @@ describe("ensureInternalUser", () => {
       create: async () => {
         throw new Error("should not create");
       },
-      setRole: async (id: string, role: string) => ({
-        ...existing,
-        id,
-        role,
-      }),
+      setRole: async () => {
+        throw new Error("should not promote");
+      },
+      listMembers: async () => [],
+      updateDisplayName: async () => existing,
     };
 
     await expect(
       ensureInternalUser({ email: existing.email }, { db }),
     ).resolves.toMatchObject({
       email: existing.email,
-      role: "admin",
+      role: "reviewer",
     });
   });
 
@@ -195,6 +203,10 @@ describe("ensureInternalUser", () => {
       },
       setRole: async () => {
         throw new Error("should not promote");
+      },
+      listMembers: async () => [],
+      updateDisplayName: async () => {
+        throw new Error("should not update");
       },
     };
 

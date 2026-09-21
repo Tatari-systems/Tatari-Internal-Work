@@ -8,5 +8,9 @@ export default async function ConsoleLayout({
 }: Readonly<{ children: ReactNode }>) {
   const actor = await requireConsoleActor();
 
-  return <ConsoleChrome email={actor.email}>{children}</ConsoleChrome>;
+  return (
+    <ConsoleChrome email={actor.email} displayName={actor.displayName}>
+      {children}
+    </ConsoleChrome>
+  );
 }

@@ -13,14 +13,14 @@ Tatari Work is a separate product from the Compute Platform quote-to-commit app 
 
 ## Product
 
-One Tatari workspace. Sign in with an `@tatari.systems` email. New accounts land as **admin**.
+One Tatari workspace. Sign in with an `@tatari.systems` email. Self-signup and invites join as **reviewer**. Seeded team members stay **admin**. Log out lives in **Settings**.
 
 | Surface | What it is |
 | --- | --- |
 | **My work** | Tasks assigned to you, grouped overdue / today / later |
 | **Inbox** | Open tasks with no assignee |
 | **Projects** | Boards for Tatari 1.5, Internal Work, Mining ops, and Pitch |
-| **Task** | `TAT-n` key, status, priority, due date, assignee |
+| **Settings** | Profile, members, invites, workspace, log out |
 
 Statuses are `todo` → `in_progress` → `done`. Boards use HTML5 drag and drop. Assignees start as Dagim, Manish, Aarash, Glodi, and Yasha.
 
@@ -55,9 +55,10 @@ Fill `.env`:
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 NEXT_PUBLIC_SUPABASE_URL="https://YOUR_PROJECT_REF.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 ```
 
-Do not put the service role key in this app.
+Keep the service role on the server only. The anon key is the public one.
 
 ### 1. Database
 
@@ -79,7 +80,7 @@ In **Authentication → Providers**:
 
   `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
 
-Only `@tatari.systems` addresses are accepted. Everyone who registers gets admin.
+Only `@tatari.systems` addresses are accepted. New sign-ups are reviewers. Admins invite from Settings → Members.
 
 ### 3. Run
 
@@ -107,6 +108,7 @@ Open [http://localhost:3000](http://localhost:3000). Unauthenticated visits go t
 src/app/(auth)          Login and signup
 src/app/auth/callback   Supabase OAuth callback
 src/app/(console)/work  My work, inbox, projects, task pages
+src/app/(console)/settings  Profile, members, workspace, log out
 src/lib/auth            Email allowlist, session actor, server actions
 src/lib/supabase        Browser, server, and proxy clients
 src/lib/db              Supabase Work/profile stores
@@ -118,7 +120,7 @@ public/tatari-logo.jpg  Brand mark
 
 ## Security
 
-- Anon key only in the client env. Never the service role.
+- Anon key is public. `SUPABASE_SERVICE_ROLE_KEY` is server-only, for member invite emails.
 - Domain check is in the app (`isTatariEmail`), not only in Supabase dashboard settings.
 - Work routes require a session. Missing tables redirect to login with a setup message instead of crashing the sign-in action.
 - Seed profiles use `firstname@tatari.systems`. Signing up with that same email reuses the assignee row.

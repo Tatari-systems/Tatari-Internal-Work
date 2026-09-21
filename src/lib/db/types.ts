@@ -90,11 +90,14 @@ export type ProfileDatabase = {
   findByEmail(email: string): Promise<ProfileRecord | null>;
   countActive(): Promise<number>;
   create(data: {
+    id?: string;
     email: string;
     displayName: string;
     role: string;
   }): Promise<ProfileRecord>;
   setRole(id: string, role: string): Promise<ProfileRecord>;
+  listMembers(): Promise<ProfileRecord[]>;
+  updateDisplayName(id: string, displayName: string): Promise<ProfileRecord>;
 };
 
 export type WorkDatabase = {
@@ -128,6 +131,7 @@ export type WorkDatabase = {
   ): Promise<TaskRecord | null>;
   getTaskById(id: string): Promise<TaskRecord | null>;
   maxPosition(projectId: string, status: string): Promise<number>;
+  countOpenTasks(projectId: string): Promise<number>;
   createTask(data: CreateTaskRecord): Promise<TaskRecord>;
   updateTask(id: string, data: UpdateTaskRecord): Promise<TaskRecord>;
   insertAudit(data: AuditInsert): Promise<void>;

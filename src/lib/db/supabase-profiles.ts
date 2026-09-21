@@ -56,6 +56,7 @@ export function createSupabaseProfileDatabase(
       const { data: row, error } = await client
         .from("profiles")
         .insert({
+          ...(data.id ? { id: data.id } : {}),
           email: data.email,
           display_name: data.displayName,
           role: data.role,
@@ -81,6 +82,39 @@ export function createSupabaseProfileDatabase(
 
       if (error || !row) {
         throw new Error(error?.message ?? "Could not update profile role.");
+      }
+
+      return mapProfile(row);
+    },
+
+    async listMembers() {
+      const { data, error } = await client
+        .from("profiles")
+        .select("id, email, display_name, role, is_active")
+        .eq("is_active", true)
+        .order("display_name", { ascending: true })
+        .order("email", { ascending: true });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return (data ?? []).map(mapProfile);
+    },
+
+    async updateDisplayName(id, displayName) {
+      const { data: row, error } = await client
+        .from("profiles")
+        .update({
+          display_name: displayName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select("id, email, display_name, role, is_active")
+        .single();
+
+      if (error || !row) {
+        throw new Error(error?.message ?? "Could not update name.");
       }
 
       return mapProfile(row);

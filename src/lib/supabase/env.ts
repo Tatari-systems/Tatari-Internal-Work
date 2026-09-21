@@ -19,6 +19,10 @@ export function getSupabaseAnonKey(): string | null {
   );
 }
 
+export function getSupabaseServiceRoleKey(): string | null {
+  return readEnv("SUPABASE_SERVICE_ROLE_KEY");
+}
+
 export function getSiteUrl(): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
@@ -31,12 +35,27 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }
 
+export function isSupabaseAdminConfigured(): boolean {
+  return Boolean(getSupabaseUrl() && getSupabaseServiceRoleKey());
+}
+
 export function requireSupabaseEnv(): { url: string; key: string } {
   const url = getSupabaseUrl();
   const key = getSupabaseAnonKey();
 
   if (!url || !key) {
     throw new Error("Supabase auth is not configured.");
+  }
+
+  return { url, key };
+}
+
+export function requireSupabaseAdminEnv(): { url: string; key: string } {
+  const url = getSupabaseUrl();
+  const key = getSupabaseServiceRoleKey();
+
+  if (!url || !key) {
+    throw new Error("Supabase admin is not configured.");
   }
 
   return { url, key };

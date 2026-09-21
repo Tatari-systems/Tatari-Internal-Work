@@ -14,10 +14,13 @@ export async function updateSession(request: NextRequest) {
   const key = getSupabaseAnonKey();
   const pathname = request.nextUrl.pathname;
   const isWork = pathname === "/work" || pathname.startsWith("/work/");
+  const isSettings =
+    pathname === "/settings" || pathname.startsWith("/settings/");
+  const isProtected = isWork || isSettings;
   const skipRedirects = isServerActionRequest(request);
 
   if (!url || !key) {
-    if (isWork && !skipRedirects) {
+    if (isProtected && !skipRedirects) {
       const login = request.nextUrl.clone();
       login.pathname = "/login";
       login.search = "?error=Configuration";
@@ -60,14 +63,14 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  if (isWork && !user) {
+  if (isProtected && !user) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
     login.search = `?callbackUrl=${encodeURIComponent(pathname)}`;
     return NextResponse.redirect(login);
   }
 
-  if (user?.email && !isTatariEmail(user.email) && isWork) {
+  if (user?.email && !isTatariEmail(user.email) && isProtected) {
     await supabase.auth.signOut();
     const login = request.nextUrl.clone();
     login.pathname = "/login";

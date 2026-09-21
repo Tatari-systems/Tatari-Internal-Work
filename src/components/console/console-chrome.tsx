@@ -3,16 +3,20 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { SignOutButton } from "@/components/auth-buttons";
+import { Avatar, AvatarFallback, initialsFrom } from "@/components/ui/avatar";
 import { TatariLogo } from "@/components/tatari-logo";
 
 export function ConsoleChrome({
   email,
+  displayName,
   children,
 }: {
   email: string;
+  displayName: string | null;
   children: ReactNode;
 }) {
+  const label = displayName || email;
+
   return (
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-bg/80 backdrop-blur-[20px]">
@@ -23,11 +27,18 @@ export function ConsoleChrome({
               Tatari
             </span>
           </Link>
-          <div className="ml-auto flex items-center gap-4">
-            <span className="hidden max-w-[14rem] truncate text-[13px] font-light text-white/50 sm:block">
-              {email}
-            </span>
-            <SignOutButton />
+          <div className="ml-auto">
+            <Link
+              href="/settings/profile"
+              className="flex items-center gap-3 rounded-control px-2 py-1.5 transition-colors hover:bg-white/5"
+            >
+              <span className="hidden max-w-[12rem] truncate text-[13px] font-light text-white/55 sm:block">
+                {label}
+              </span>
+              <Avatar className="size-8">
+                <AvatarFallback>{initialsFrom(displayName, email)}</AvatarFallback>
+              </Avatar>
+            </Link>
           </div>
         </div>
       </header>

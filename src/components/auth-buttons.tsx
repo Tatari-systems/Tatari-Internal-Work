@@ -1,3 +1,4 @@
+import { GoogleMark } from "@/components/google-mark";
 import { signInWithGoogle, signOutToHome } from "@/lib/auth/actions";
 
 export function GoogleSignInButton({ callbackUrl }: { callbackUrl: string }) {
@@ -10,8 +11,9 @@ export function GoogleSignInButton({ callbackUrl }: { callbackUrl: string }) {
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <button
         type="submit"
-        className="rounded-control bg-accent-strong px-4 py-2.5 text-sm font-medium text-text transition-colors hover:bg-accent"
+        className="inline-flex items-center justify-center gap-2 rounded-control border border-white/15 bg-white/8 px-4 py-2.5 text-sm font-medium text-text transition-colors hover:bg-white/12"
       >
+        <GoogleMark />
         Continue with Google
       </button>
     </form>

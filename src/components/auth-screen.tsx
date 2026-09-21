@@ -14,19 +14,19 @@ export function AuthScreen({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-65px)] max-w-xl items-center px-6 py-14">
-      <section className="w-full space-y-8">
-        <div className="space-y-4">
-          <TatariLogo size={56} priority />
+    <main className="flex min-h-[calc(100vh-65px)] items-center justify-center px-6 py-14">
+      <section className="w-full max-w-md space-y-8">
+        <div className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <TatariLogo size={56} priority />
+          </div>
           <p className="font-brand text-xs font-semibold uppercase tracking-[0.28em] text-text-faint">
             Internal
           </p>
-          <h1 className="font-display text-4xl leading-tight text-text sm:text-5xl">
+          <h1 className="font-display text-4xl leading-tight text-text">
             {title}
           </h1>
-          <p className="max-w-md text-base leading-7 text-text-muted">
-            {description}
-          </p>
+          <p className="text-base leading-7 text-text-muted">{description}</p>
         </div>
 
         {errorMessage ? (

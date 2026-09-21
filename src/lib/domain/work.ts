@@ -60,3 +60,11 @@ export function taskStatusLabel(status: TaskStatus): string {
 
   return "To do";
 }
+
+export function taskPriorityLabel(priority: TaskPriority): string {
+  if (priority === "none") {
+    return "";
+  }
+
+  return priority.charAt(0).toUpperCase() + priority.slice(1);
+}

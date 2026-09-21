@@ -78,6 +78,21 @@ export async function listProjects(
   return projects.map(mapProjectView);
 }
 
+export async function listProjectSummaries(
+  options: { includeArchived?: boolean } = {},
+  deps: WorkDeps = {},
+): Promise<Array<ProjectView & { openTaskCount: number }>> {
+  const db = await resolveDb(deps.db);
+  const projects = await listProjects(options, deps);
+
+  return Promise.all(
+    projects.map(async (project) => ({
+      ...project,
+      openTaskCount: await db.countOpenTasks(project.id),
+    })),
+  );
+}
+
 export async function getProjectBySlug(
   slug: string,
   deps: WorkDeps = {},

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/ui/page-header";
@@ -16,6 +15,7 @@ import {
   listProjects,
 } from "@/lib/services/work";
 import { ArchiveProjectButton } from "@/components/work/archive-project-button";
+import { ViewToggle } from "@/components/work/view-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -53,18 +53,11 @@ export default async function ProjectPage({
         description={project.description ?? undefined}
         actions={
           <>
-            <Link
-              href={`/work/projects/${project.slug}?view=board`}
-              className="text-[13px] text-white/50 hover:text-text"
-            >
-              Board
-            </Link>
-            <Link
-              href={`/work/projects/${project.slug}?view=list`}
-              className="text-[13px] text-white/50 hover:text-text"
-            >
-              List
-            </Link>
+            <ViewToggle
+              view={view}
+              boardHref={`/work/projects/${project.slug}?view=board`}
+              listHref={`/work/projects/${project.slug}?view=list`}
+            />
             <CreateTaskDialog
               projects={projects}
               people={people}

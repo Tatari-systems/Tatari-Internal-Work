@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { CreateProjectDialog } from "@/components/work/create-project-dialog";
 import type { ProjectView } from "@/lib/work/views";
-import { cx } from "@/lib/ui/cx";
+import { cn } from "@/lib/ui/cn";
 
 export function WorkShell({
   projects,
@@ -29,10 +32,7 @@ export function WorkShell({
         </p>
         <nav className="mt-4 space-y-1">
           {projects.map((project) => (
-            <SideLink
-              key={project.id}
-              href={`/work/projects/${project.slug}`}
-            >
+            <SideLink key={project.id} href={`/work/projects/${project.slug}`}>
               {project.name}
             </SideLink>
           ))}
@@ -55,11 +55,20 @@ function SideLink({
   href: string;
   children: string;
 }) {
+  const pathname = usePathname();
+  const active =
+    href === "/work"
+      ? pathname === "/work"
+      : pathname === href || pathname.startsWith(`${href}/`);
+
   return (
     <Link
       href={href}
-      className={cx(
-        "block rounded-control px-2 py-2 text-[13px] font-light text-white/50 transition-colors hover:bg-white/5 hover:text-text",
+      className={cn(
+        "block rounded-control px-2 py-2 text-[13px] font-light transition-colors",
+        active
+          ? "bg-white/8 text-text"
+          : "text-white/50 hover:bg-white/5 hover:text-text",
       )}
     >
       {children}

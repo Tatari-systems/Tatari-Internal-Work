@@ -390,6 +390,20 @@ export function createSupabaseWorkDatabase(
       return typeof value === "number" ? value : Number(value ?? 0);
     },
 
+    async countOpenTasks(projectId) {
+      const { count, error } = await client
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", projectId)
+        .neq("status", "done");
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return count ?? 0;
+    },
+
     async createTask(data) {
       const result = await client
         .from("tasks")

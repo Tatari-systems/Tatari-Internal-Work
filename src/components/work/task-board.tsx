@@ -4,8 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type DragEvent } from "react";
 
-import { StatusChip } from "@/components/ui/status-chip";
-import { TASK_STATUSES, taskStatusLabel, type TaskStatus } from "@/lib/domain/work";
+import { Avatar, AvatarFallback, initialsFrom } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { DueChip } from "@/components/ui/due-chip";
+import {
+  TASK_STATUSES,
+  taskPriorityLabel,
+  taskStatusLabel,
+  type TaskPriority,
+  type TaskStatus,
+} from "@/lib/domain/work";
 import { moveTaskAction } from "@/lib/api/work";
 import type { TaskView } from "@/lib/work/views";
 
@@ -103,24 +112,43 @@ function BoardCard({
   onDragStart: (event: DragEvent<HTMLDivElement>) => void;
   onDropBefore: (event: DragEvent<HTMLDivElement>) => void;
 }) {
+  const priority = task.priority as TaskPriority;
+  const priorityLabel = taskPriorityLabel(priority);
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
       onDragOver={(event) => event.preventDefault()}
       onDrop={onDropBefore}
+      className="cursor-grab active:cursor-grabbing"
     >
-      <Link
-        href={`/work/projects/${projectSlug}?task=${task.key}`}
-        className="block rounded-card border border-border bg-surface p-3 transition-colors hover:border-white/12 hover:bg-white/6"
-      >
-        <p className="font-brand text-[11px] tracking-[0.14em] text-text-faint">
-          {task.key}
-        </p>
-        <p className="mt-2 text-sm leading-5 text-text">{task.title}</p>
-        <div className="mt-3">
-          <StatusChip status={task.status} />
-        </div>
+      <Link href={`/work/projects/${projectSlug}?task=${task.key}`}>
+        <Card className="p-3.5 shadow-none transition-colors hover:border-white/16 hover:bg-white/[0.06]">
+          <p className="font-brand text-[11px] tracking-[0.14em] text-text-faint">
+            {task.key}
+          </p>
+          <p className="mt-2 text-sm leading-5 text-text">{task.title}</p>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              {task.assignee ? (
+                <Avatar className="size-6 text-[9px]" title={task.assignee.displayName ?? task.assignee.email}>
+                  <AvatarFallback>
+                    {initialsFrom(task.assignee.displayName, task.assignee.email)}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <span className="text-[11px] text-text-faint">Unassigned</span>
+              )}
+              {priorityLabel ? (
+                <Badge variant={priority === "high" ? "danger" : "muted"}>
+                  {priorityLabel}
+                </Badge>
+              ) : null}
+            </div>
+            <DueChip dueAt={task.dueAt} />
+          </div>
+        </Card>
       </Link>
     </div>
   );

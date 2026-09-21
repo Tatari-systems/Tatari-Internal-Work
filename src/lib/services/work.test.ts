@@ -77,6 +77,9 @@ function createDatabase() {
       tasks.find((task) => task.number === number) ?? null,
     getTaskById: async (id) => tasks.find((task) => task.id === id) ?? null,
     maxPosition: async () => 0,
+    countOpenTasks: async (id) =>
+      tasks.filter((task) => task.project.id === id && task.status !== "done")
+        .length,
     createTask: async (data) => {
       const record: TaskRecord = {
         id: taskId,

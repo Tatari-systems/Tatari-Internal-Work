@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { GoogleMark } from "@/components/google-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   signInWithGoogle,
   signInWithPassword,
@@ -59,7 +61,7 @@ export function AuthForm({
 
   if (confirmEmail) {
     return (
-      <p className="text-sm leading-6 text-text-muted">
+      <p className="text-center text-sm leading-6 text-text-muted">
         Check your @{TATARI_EMAIL_DOMAIN} inbox and confirm the account, then
         sign in.
       </p>
@@ -67,9 +69,9 @@ export function AuthForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {!configured ? (
-        <p role="alert" className="rounded-card border border-border bg-surface px-4 py-3 text-sm text-danger">
+        <p role="alert" className="rounded-card border border-border bg-bg px-4 py-3 text-sm text-danger">
           Add the Supabase URL and anon key to `.env`, then restart the server.
         </p>
       ) : null}
@@ -80,10 +82,29 @@ export function AuthForm({
         </p>
       ) : null}
 
+      <form action={onGoogle}>
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+        <Button
+          type="submit"
+          variant="glass"
+          className="w-full gap-2"
+          disabled={!configured || pending !== null}
+        >
+          <GoogleMark />
+          {pending === "google" ? "Redirecting…" : "Continue with Google"}
+        </Button>
+      </form>
+
+      <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-text-faint">
+        <Separator className="flex-1" />
+        or
+        <Separator className="flex-1" />
+      </div>
+
       <form action={onPassword} className="space-y-4">
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
         {mode === "signup" ? (
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label htmlFor="displayName">Name</Label>
             <Input
               id="displayName"
@@ -93,7 +114,7 @@ export function AuthForm({
             />
           </div>
         ) : null}
-        <div className="space-y-2">
+        <div className="space-y-2 text-left">
           <Label htmlFor="email">Work email</Label>
           <Input
             id="email"
@@ -104,7 +125,7 @@ export function AuthForm({
             required
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 text-left">
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"
@@ -116,7 +137,7 @@ export function AuthForm({
           />
         </div>
         {mode === "signup" ? (
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label htmlFor="confirmPassword">Confirm password</Label>
             <Input
               id="confirmPassword"
@@ -140,40 +161,28 @@ export function AuthForm({
               : "Signing in…"
             : mode === "signup"
               ? "Create account"
-              : "Sign in"}
+              : "Sign in with email"}
         </Button>
       </form>
 
-      <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-text-faint">
-        <span className="h-px flex-1 bg-white/10" />
-        or
-        <span className="h-px flex-1 bg-white/10" />
-      </div>
-
-      <form action={onGoogle}>
-        <input type="hidden" name="callbackUrl" value={callbackUrl} />
-        <Button
-          type="submit"
-          variant="glass"
-          className="w-full"
-          disabled={!configured || pending !== null}
-        >
-          {pending === "google" ? "Redirecting…" : "Continue with Google"}
-        </Button>
-      </form>
-
-      <p className="text-sm text-text-muted">
+      <p className="text-center text-sm text-text-muted">
         {mode === "signup" ? (
           <>
             Already have an account?{" "}
-            <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-accent hover:text-text">
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+              className="text-accent hover:text-text"
+            >
               Sign in
             </Link>
           </>
         ) : (
           <>
             Need an account?{" "}
-            <Link href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-accent hover:text-text">
+            <Link
+              href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+              className="text-accent hover:text-text"
+            >
               Create one
             </Link>
           </>

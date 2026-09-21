@@ -25,6 +25,7 @@ export default async function InboxPage() {
         <EmptyState
           title="Inbox is clear."
           description="New unassigned tasks will land here."
+          action={{ label: "View projects", href: "/work/projects" }}
         />
       ) : (
         <div className="space-y-3">

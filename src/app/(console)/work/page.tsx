@@ -34,6 +34,7 @@ export default async function MyWorkPage() {
         <EmptyState
           title="Nothing assigned."
           description="Create a task and assign it to yourself, or pick something up from Inbox."
+          action={{ label: "Open inbox", href: "/work/inbox" }}
         />
       ) : (
         <div className="space-y-10">
@@ -62,6 +63,7 @@ function TaskGroup({
     <section className="space-y-3">
       <h2 className="font-brand text-[11px] font-semibold uppercase tracking-[0.22em] text-text-faint">
         {title}
+        <span className="ml-2 text-white/30">{tasks.length}</span>
       </h2>
       <div className="space-y-3">
         {tasks.map((task) => (

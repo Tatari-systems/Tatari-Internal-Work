@@ -43,7 +43,31 @@ export function WorkShell({
           </div>
         ) : null}
       </aside>
-      <div className="min-w-0 flex-1 px-4 py-8 sm:px-8">{children}</div>
+      <div className="min-w-0 flex-1 px-4 py-8 sm:px-8">
+        <div className="mb-6 lg:hidden">
+          <nav className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+            <SideLink href="/work" compact>
+              My work
+            </SideLink>
+            <SideLink href="/work/inbox" compact>
+              Inbox
+            </SideLink>
+            <SideLink href="/work/projects" compact>
+              Projects
+            </SideLink>
+            {projects.map((project) => (
+              <SideLink
+                key={project.id}
+                href={`/work/projects/${project.slug}`}
+                compact
+              >
+                {project.name}
+              </SideLink>
+            ))}
+          </nav>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
@@ -51,9 +75,11 @@ export function WorkShell({
 function SideLink({
   href,
   children,
+  compact = false,
 }: {
   href: string;
   children: string;
+  compact?: boolean;
 }) {
   const pathname = usePathname();
   const active =
@@ -65,7 +91,10 @@ function SideLink({
     <Link
       href={href}
       className={cn(
-        "block rounded-control px-2 py-2 text-[13px] font-light transition-colors",
+        "rounded-control text-[13px] font-light transition-colors",
+        compact
+          ? "shrink-0 px-3 py-1.5"
+          : "block px-2 py-2",
         active
           ? "bg-white/8 text-text"
           : "text-white/50 hover:bg-white/5 hover:text-text",

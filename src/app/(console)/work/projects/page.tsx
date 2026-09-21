@@ -21,7 +21,11 @@ export default async function ProjectsPage() {
         actions={canAdminister(actor.role) ? <CreateProjectDialog /> : null}
       />
       {projects.length === 0 ? (
-        <EmptyState title="No projects yet." />
+        <EmptyState
+          title="No projects yet."
+          description="Create a project to start tracking work."
+          action={{ label: "Back to my work", href: "/work" }}
+        />
       ) : (
         <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-2">
           {projects.map((project) => (

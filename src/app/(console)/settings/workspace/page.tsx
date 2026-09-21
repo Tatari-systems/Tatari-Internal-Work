@@ -13,8 +13,8 @@ export default async function WorkspaceSettingsPage() {
     <div className="space-y-10">
       <PageHeader
         kicker="Workspace"
-        title="Workspace"
-        description="Company workspace slug: tatari."
+        title="Tatari"
+        description="Company workspace. Slug: tatari."
       />
       <div className="grid gap-5 sm:grid-cols-2">
         {projects.map((project) => (

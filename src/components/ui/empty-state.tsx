@@ -13,9 +13,11 @@ export function EmptyState({
 }) {
   return (
     <div className="rounded-card border border-border bg-surface px-6 py-16 text-center">
-      <h2 className="font-display text-3xl text-text">{title}</h2>
+      <h2 className="break-words font-display text-3xl text-text [overflow-wrap:anywhere]">
+        {title}
+      </h2>
       {description ? (
-        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-text-muted">
+        <p className="mx-auto mt-3 max-w-md break-words text-sm leading-6 text-text-muted [overflow-wrap:anywhere]">
           {description}
         </p>
       ) : null}

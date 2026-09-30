@@ -31,8 +31,14 @@ describe("getSiteUrl", () => {
     expect(getSiteUrl()).toBe("https://tatari-work.vercel.app");
   });
 
-  it("ignores localhost when Vercel provides a production host", () => {
+  it("keeps localhost when explicitly set, even if Vercel hosts exist", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "tatari-work.vercel.app";
+    expect(getSiteUrl()).toBe("http://localhost:3000");
+  });
+
+  it("falls back to Vercel production host when SITE_URL is unset", () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL;
     process.env.VERCEL_PROJECT_PRODUCTION_URL = "tatari-work.vercel.app";
     expect(getSiteUrl()).toBe("https://tatari-work.vercel.app");
   });

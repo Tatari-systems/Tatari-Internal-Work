@@ -26,6 +26,7 @@ export function WorkShell({
           <SideLink href="/work">My work</SideLink>
           <SideLink href="/work/inbox">Inbox</SideLink>
           <SideLink href="/work/projects">Projects</SideLink>
+          <SideLink href="/outreach">Outreach</SideLink>
         </nav>
         <p className="mt-8 px-2 font-brand text-[11px] font-semibold uppercase tracking-[0.22em] text-text-faint">
           Projects
@@ -54,6 +55,9 @@ export function WorkShell({
             </SideLink>
             <SideLink href="/work/projects" compact>
               Projects
+            </SideLink>
+            <SideLink href="/outreach" compact>
+              Outreach
             </SideLink>
             {projects.map((project) => (
               <SideLink

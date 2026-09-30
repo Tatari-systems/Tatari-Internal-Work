@@ -59,7 +59,7 @@ export function TaskBoard({
           return (
             <section
               key={status}
-              className="min-h-72 min-w-0 rounded-card border border-white/6 bg-white/[0.02] p-4"
+              className="min-h-72 min-w-0 overflow-hidden rounded-card border border-white/6 bg-white/[0.02] p-4"
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
@@ -130,7 +130,9 @@ function BoardCard({
           <p className="font-brand text-[11px] tracking-[0.14em] text-text-faint">
             {task.key}
           </p>
-          <p className="mt-2 break-words text-sm leading-5 text-text">{task.title}</p>
+          <p className="mt-2 break-words text-sm leading-5 text-text [overflow-wrap:anywhere]">
+            {task.title}
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
             {task.assignee ? (
               <Avatar className="size-6 shrink-0 text-[9px]" title={task.assignee.displayName ?? task.assignee.email}>

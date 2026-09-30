@@ -30,7 +30,10 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn("font-display text-3xl leading-tight text-text", className)}
+      className={cn(
+        "break-words font-display text-3xl leading-tight text-text [overflow-wrap:anywhere]",
+        className,
+      )}
       {...props}
     />
   );
@@ -41,7 +44,13 @@ export function CardDescription({
   ...props
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-sm leading-6 text-text-muted", className)} {...props} />
+    <p
+      className={cn(
+        "break-words text-sm leading-6 text-text-muted [overflow-wrap:anywhere]",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 

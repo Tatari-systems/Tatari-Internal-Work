@@ -19,9 +19,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   const isWork = pathname === "/work" || pathname.startsWith("/work/");
+  const isOutreach =
+    pathname === "/outreach" || pathname.startsWith("/outreach/");
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
-  const isProtected = isWork || isSettings;
+  const isProtected = isWork || isOutreach || isSettings;
   const skipRedirects = isServerActionRequest(request);
 
   if (!url || !key) {

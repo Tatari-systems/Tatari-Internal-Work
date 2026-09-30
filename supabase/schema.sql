@@ -68,6 +68,19 @@ create table if not exists public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.outreach_runs (
+  id uuid primary key default gen_random_uuid(),
+  started_at timestamptz not null default now(),
+  trigger text not null,
+  status text not null,
+  message text,
+  execution_id text,
+  triggered_by text,
+  firm_name text,
+  limit_count integer,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists profiles_role_active_idx on public.profiles (role, is_active);
 create index if not exists projects_workspace_archived_idx on public.projects (workspace_id, archived_at, position);
 create index if not exists tasks_project_status_idx on public.tasks (project_id, status, position);
@@ -92,7 +105,10 @@ end;
 $$;
 
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on public.profiles, public.workspaces, public.projects, public.tasks, public.audit_logs to authenticated;
+create index if not exists audit_logs_entity_idx on public.audit_logs (entity_type, entity_id, created_at desc);
+create index if not exists outreach_runs_started_idx on public.outreach_runs (started_at desc);
+
+grant select, insert, update, delete on public.profiles, public.workspaces, public.projects, public.tasks, public.audit_logs, public.outreach_runs to authenticated;
 grant execute on function public.next_task_number(uuid) to authenticated;
 
 alter table public.profiles enable row level security;
@@ -100,6 +116,7 @@ alter table public.workspaces enable row level security;
 alter table public.projects enable row level security;
 alter table public.tasks enable row level security;
 alter table public.audit_logs enable row level security;
+alter table public.outreach_runs enable row level security;
 
 drop policy if exists profiles_authenticated on public.profiles;
 create policy profiles_authenticated on public.profiles
@@ -119,6 +136,10 @@ create policy tasks_authenticated on public.tasks
 
 drop policy if exists audit_logs_authenticated on public.audit_logs;
 create policy audit_logs_authenticated on public.audit_logs
+  for all to authenticated using (true) with check (true);
+
+drop policy if exists outreach_runs_authenticated on public.outreach_runs;
+create policy outreach_runs_authenticated on public.outreach_runs
   for all to authenticated using (true) with check (true);
 
 alter table public.profiles alter column role set default 'reviewer';

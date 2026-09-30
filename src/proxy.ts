@@ -9,6 +9,8 @@ export const config = {
   matcher: [
     "/work",
     "/work/:path*",
+    "/outreach",
+    "/outreach/:path*",
     "/settings",
     "/settings/:path*",
     "/login",

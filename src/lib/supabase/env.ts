@@ -26,7 +26,9 @@ export function getSupabaseServiceRoleKey(): string | null {
 export function getSiteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
-  if (explicit && !/localhost|127\.0\.0\.1/i.test(explicit)) {
+  // Prefer the explicit app URL always (including localhost for local auth).
+  // Only fall back to Vercel hosts when SITE_URL is unset.
+  if (explicit) {
     return explicit.replace(/\/$/, "");
   }
 
@@ -39,7 +41,7 @@ export function getSiteUrl(): string {
     return `https://${host}`;
   }
 
-  return explicit?.replace(/\/$/, "") || "http://localhost:3000";
+  return "http://localhost:3000";
 }
 
 export function isSupabaseConfigured(): boolean {

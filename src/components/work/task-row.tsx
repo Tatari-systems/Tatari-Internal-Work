@@ -21,12 +21,12 @@ export function TaskRow({
   return (
     <Link
       href={target}
-      className="flex items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 transition-colors hover:border-white/12 hover:bg-white/6 sm:gap-4 sm:px-[18px]"
+      className="flex min-w-0 items-center gap-3 overflow-hidden rounded-card border border-border bg-surface px-4 py-3 transition-colors hover:border-white/12 hover:bg-white/6 sm:gap-4 sm:px-[18px]"
     >
       <span className="w-14 shrink-0 font-brand text-[11px] tracking-[0.14em] text-text-faint sm:w-16">
         {task.key}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-text">
+      <span className="min-w-0 flex-1 truncate text-sm text-text [overflow-wrap:anywhere]">
         {task.title}
       </span>
       <StatusChip status={task.status} />

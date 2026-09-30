@@ -123,9 +123,12 @@ function BoardCard({
       onDragStart={onDragStart}
       onDragOver={(event) => event.preventDefault()}
       onDrop={onDropBefore}
-      className="cursor-grab active:cursor-grabbing"
+      className="min-w-0 cursor-grab active:cursor-grabbing"
     >
-      <Link href={`/work/projects/${projectSlug}?task=${task.key}`}>
+      <Link
+        href={`/work/projects/${projectSlug}?task=${task.key}`}
+        className="block min-w-0"
+      >
         <Card className="min-w-0 overflow-hidden p-3.5 shadow-none transition-colors hover:border-white/16 hover:bg-white/[0.06]">
           <p className="font-brand text-[11px] tracking-[0.14em] text-text-faint">
             {task.key}
@@ -133,27 +136,35 @@ function BoardCard({
           <p className="mt-2 break-words text-sm leading-5 text-text [overflow-wrap:anywhere]">
             {task.title}
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            {task.assignee ? (
-              <Avatar className="size-6 shrink-0 text-[9px]" title={task.assignee.displayName ?? task.assignee.email}>
-                <AvatarFallback>
-                  {initialsFrom(task.assignee.displayName, task.assignee.email)}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <span className="min-w-0 truncate text-[11px] text-text-faint">
-                Unassigned
-              </span>
-            )}
-            {priorityLabel ? (
-              <Badge
-                className="shrink-0"
-                variant={priority === "high" ? "danger" : "muted"}
-              >
-                {priorityLabel}
-              </Badge>
-            ) : null}
-            <DueChip className="ml-auto" dueAt={task.dueAt} />
+          <div className="mt-3 flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+              {task.assignee ? (
+                <Avatar
+                  className="size-6 shrink-0 text-[9px]"
+                  title={task.assignee.displayName ?? task.assignee.email}
+                >
+                  <AvatarFallback>
+                    {initialsFrom(
+                      task.assignee.displayName,
+                      task.assignee.email,
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <span className="truncate text-[11px] text-text-faint">
+                  Unassigned
+                </span>
+              )}
+              {priorityLabel ? (
+                <Badge
+                  className="shrink-0"
+                  variant={priority === "high" ? "danger" : "muted"}
+                >
+                  {priorityLabel}
+                </Badge>
+              ) : null}
+            </div>
+            <DueChip className="shrink-0" dueAt={task.dueAt} />
           </div>
         </Card>
       </Link>

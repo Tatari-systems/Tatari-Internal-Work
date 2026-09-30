@@ -72,7 +72,7 @@ export default async function ProjectPage({
       <div
         className={
           selected
-            ? "grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]"
+            ? "grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]"
             : "min-w-0"
         }
       >

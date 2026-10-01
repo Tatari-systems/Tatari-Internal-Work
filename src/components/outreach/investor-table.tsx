@@ -29,7 +29,7 @@ export function InvestorTable({ investors }: { investors: InvestorRow[] }) {
     <div className="overflow-x-auto rounded-card border border-border">
       <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-white/8 bg-white/[0.02] text-[11px] uppercase tracking-[0.16em] text-text-faint">
+          <tr className="border-b border-white/8 bg-white/[0.02] text-[11px] uppercase tracking-[0.16em] text-cyan/70">
             <th className="px-4 py-3 font-normal">Firm</th>
             <th className="px-4 py-3 font-normal">Contact</th>
             <th className="px-4 py-3 font-normal">Category</th>

@@ -69,7 +69,7 @@ export function TaskBoard({
                 }
               }}
             >
-              <h2 className="font-brand text-[11px] font-semibold uppercase tracking-[0.22em] text-text-faint">
+              <h2 className="font-brand text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan/80">
                 {taskStatusLabel(status)}
                 <span className="ml-2 text-white/30">{columnTasks.length}</span>
               </h2>

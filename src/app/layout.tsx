@@ -21,8 +21,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Tatari Work",
-  description: "Internal task tracker for Tatari operations.",
+  title: "Tatari Internal",
+  description: "Internal workspace for Tatari Work and Outreach CRM.",
   icons: {
     icon: "/tatari-logo.jpg",
     apple: "/tatari-logo.jpg",

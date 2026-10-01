@@ -82,7 +82,7 @@ export default async function OutreachInvestorPage({
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-3">
         <section className="min-w-0 space-y-4 overflow-hidden rounded-card border border-border bg-surface p-5">
-          <h2 className="font-brand text-[11px] uppercase tracking-[0.18em] text-text-faint">
+          <h2 className="font-brand text-[11px] uppercase tracking-[0.18em] text-cyan/80">
             Identity
           </h2>
           <Field label="Contact" value={investor.contactPerson || "—"} />
@@ -90,7 +90,7 @@ export default async function OutreachInvestorPage({
           <Field label="Website" value={investor.website || "—"} />
           <Field label="Stage / ticket" value={investor.stageTicket || "—"} />
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="text-[12px] text-text-faint">Status</span>
+            <span className="text-[12px] text-cyan/70">Status</span>
             <Badge variant={statusBadgeVariant(investor.outreachStatus)}>
               {status}
             </Badge>
@@ -107,14 +107,14 @@ export default async function OutreachInvestorPage({
         </section>
 
         <section className="min-w-0 space-y-4 overflow-hidden rounded-card border border-border bg-surface p-5">
-          <h2 className="font-brand text-[11px] uppercase tracking-[0.18em] text-text-faint">
+          <h2 className="font-brand text-[11px] uppercase tracking-[0.18em] text-cyan/80">
             Research
           </h2>
           <InvestorResearchPanel investor={investor} />
         </section>
 
         <section className="min-w-0 space-y-4 overflow-hidden rounded-card border border-border bg-surface p-5">
-          <h2 className="font-brand text-[11px] uppercase tracking-[0.18em] text-text-faint">
+          <h2 className="font-brand text-[11px] uppercase tracking-[0.18em] text-cyan/80">
             Draft & review
           </h2>
           <InvestorReviewPanel
@@ -131,7 +131,7 @@ export default async function OutreachInvestorPage({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[12px] text-text-faint">{label}</p>
+      <p className="text-[12px] text-cyan/70">{label}</p>
       <p className="mt-1 break-words text-sm text-text [overflow-wrap:anywhere]">
         {value}
       </p>

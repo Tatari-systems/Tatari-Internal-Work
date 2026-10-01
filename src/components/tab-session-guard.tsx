@@ -94,7 +94,13 @@ export function TabSessionGuard({ children }: { children: ReactNode }) {
   }, []);
 
   if (!ready) {
-    return <div className="min-h-screen bg-bg" />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <p className="font-brand text-[12px] uppercase tracking-[0.22em] text-cyan/80">
+          Checking session…
+        </p>
+      </div>
+    );
   }
 
   return children;

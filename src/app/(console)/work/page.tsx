@@ -1,5 +1,13 @@
+import {
+  AlertTriangle,
+  CalendarClock,
+  CalendarDays,
+  CircleDot,
+} from "lucide-react";
+
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { SectionLabel, StatCard } from "@/components/ui/dashboard";
 import { CreateTaskDialog } from "@/components/work/create-task-dialog";
 import { TaskRow } from "@/components/work/task-row";
 import { requireConsoleActor } from "@/lib/auth/console";
@@ -30,6 +38,36 @@ export default async function MyWorkPage() {
           />
         }
       />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Overdue"
+          value={groups.overdue.length}
+          icon={AlertTriangle}
+          tone={groups.overdue.length > 0 ? "danger" : "default"}
+          hint="Past due date"
+        />
+        <StatCard
+          label="Today"
+          value={groups.today.length}
+          icon={CalendarDays}
+          tone="accent"
+          hint="Due today"
+        />
+        <StatCard
+          label="Upcoming"
+          value={groups.upcoming.length}
+          icon={CalendarClock}
+          hint="Dated later"
+        />
+        <StatCard
+          label="No date"
+          value={groups.later.length}
+          icon={CircleDot}
+          hint="Needs scheduling"
+        />
+      </div>
+
       {tasks.length === 0 ? (
         <EmptyState
           title="Nothing assigned."
@@ -61,10 +99,7 @@ function TaskGroup({
 
   return (
     <section className="space-y-3">
-      <h2 className="font-brand text-[11px] font-semibold uppercase tracking-[0.22em] text-text-faint">
-        {title}
-        <span className="ml-2 text-white/30">{tasks.length}</span>
-      </h2>
+      <SectionLabel count={tasks.length}>{title}</SectionLabel>
       <div className="space-y-3">
         {tasks.map((task) => (
           <TaskRow key={task.id} task={task} />

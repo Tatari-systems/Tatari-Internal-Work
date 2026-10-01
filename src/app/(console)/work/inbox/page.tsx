@@ -1,5 +1,8 @@
+import { Inbox } from "lucide-react";
+
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/dashboard";
 import { CreateTaskDialog } from "@/components/work/create-task-dialog";
 import { TaskRow } from "@/components/work/task-row";
 import { listAssignees, listInbox, listProjects } from "@/lib/services/work";
@@ -21,6 +24,17 @@ export default async function InboxPage() {
         description="Open work with no owner yet."
         actions={<CreateTaskDialog projects={projects} people={people} />}
       />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard
+          label="Unassigned"
+          value={tasks.length}
+          icon={Inbox}
+          tone={tasks.length > 0 ? "accent" : "default"}
+          hint="Waiting for an owner"
+        />
+      </div>
+
       {tasks.length === 0 ? (
         <EmptyState
           title="Inbox is clear."

@@ -38,7 +38,7 @@ export default async function SignupPage({
 
   return (
     <AuthScreen
-      title="Create a Tatari account"
+      title="Create a Tatari Internal account"
       description={`Accounts are limited to @${TATARI_EMAIL_DOMAIN}. New people join as reviewers; admins invite from Settings.`}
     >
       <AuthForm

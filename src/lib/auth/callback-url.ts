@@ -1,4 +1,4 @@
-const DEFAULT_CALLBACK_URL = "/work";
+const DEFAULT_CALLBACK_URL = "/";
 
 function toInternalPath(value: string): string | null {
   if (

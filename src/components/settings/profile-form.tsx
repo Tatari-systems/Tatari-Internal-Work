@@ -73,11 +73,11 @@ export function ProfileSettingsForm({
       <section className="max-w-md space-y-3 border-t border-border pt-8">
         <h2 className="font-display text-2xl text-text">Log out</h2>
         <p className="text-sm leading-6 text-text-muted">
-          Sign out of Tatari Work on this browser.
+          Sign out of Tatari Internal on this browser.
         </p>
         <form
           action={async () => {
-            const confirmed = window.confirm("Sign out of Tatari Work?");
+            const confirmed = window.confirm("Sign out of Tatari Internal?");
             if (confirmed) {
               sessionStorage.removeItem(TAB_STORAGE_KEY);
               await signOutToHome();

@@ -4,7 +4,7 @@ test("unauthenticated work routes send people to sign in", async ({ page }) => {
   await page.goto("/work");
   await expect(page).toHaveURL(/\/login/);
   await expect(
-    page.getByRole("heading", { name: "Sign in to Tatari" }),
+    page.getByRole("heading", { name: "Sign in to Tatari Internal" }),
   ).toBeVisible();
   await expect(page.getByLabel("Work email")).toBeVisible();
   await expect(

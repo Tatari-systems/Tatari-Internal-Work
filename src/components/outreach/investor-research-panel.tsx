@@ -22,7 +22,7 @@ export function InvestorResearchPanel({ investor }: { investor: InvestorRow }) {
   return (
     <div className="min-w-0 space-y-5 overflow-hidden">
       <div className="min-w-0 rounded-card border border-border bg-bg px-4 py-3">
-        <p className="text-[12px] text-text-faint">Messaging angle</p>
+        <p className="text-[12px] text-cyan/70">Messaging angle</p>
         <p className="mt-1 break-words text-sm leading-6 text-text-muted">
           {angle}
         </p>
@@ -38,7 +38,7 @@ export function InvestorResearchPanel({ investor }: { investor: InvestorRow }) {
 
       {found.length > 0 ? (
         <div className="min-w-0">
-          <p className="text-[12px] text-text-faint">Found emails</p>
+          <p className="text-[12px] text-cyan/70">Found emails</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {found.map((email) => (
               <span
@@ -60,7 +60,7 @@ export function InvestorResearchPanel({ investor }: { investor: InvestorRow }) {
         <div className="min-w-0 space-y-4">
           {blocks.map((block) => (
             <div key={block.label} className="min-w-0">
-              <p className="text-[12px] text-text-faint">{block.label}</p>
+              <p className="text-[12px] text-cyan/70">{block.label}</p>
               <ResearchBlockValue label={block.label} value={block.value} />
             </div>
           ))}
@@ -75,7 +75,7 @@ export function InvestorResearchPanel({ investor }: { investor: InvestorRow }) {
 
       {research.other.length > 0 ? (
         <div className="min-w-0">
-          <p className="text-[12px] text-text-faint">Other</p>
+          <p className="text-[12px] text-cyan/70">Other</p>
           <p className="mt-1 break-words whitespace-pre-wrap text-sm leading-6 text-text-muted [overflow-wrap:anywhere]">
             {research.other.join("\n")}
           </p>
@@ -88,7 +88,7 @@ export function InvestorResearchPanel({ investor }: { investor: InvestorRow }) {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[12px] text-text-faint">{label}</p>
+      <p className="text-[12px] text-cyan/70">{label}</p>
       <p className="mt-1 break-words text-sm text-text [overflow-wrap:anywhere]">
         {value}
       </p>

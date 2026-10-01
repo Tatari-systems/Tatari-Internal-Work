@@ -6,7 +6,7 @@ test("unauthenticated outreach routes send people to sign in", async ({
   await page.goto("/outreach");
   await expect(page).toHaveURL(/\/login/);
   await expect(
-    page.getByRole("heading", { name: "Sign in to Tatari" }),
+    page.getByRole("heading", { name: "Sign in to Tatari Internal" }),
   ).toBeVisible();
 });
 

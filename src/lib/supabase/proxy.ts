@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { isTatariEmail } from "@/lib/auth/allowed-email";
+import { asBrowserSessionCookie } from "@/lib/supabase/cookies";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 function isServerActionRequest(request: NextRequest): boolean {
@@ -18,12 +19,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  const isHome = pathname === "/";
   const isWork = pathname === "/work" || pathname.startsWith("/work/");
   const isOutreach =
     pathname === "/outreach" || pathname.startsWith("/outreach/");
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
-  const isProtected = isWork || isOutreach || isSettings;
+  const isProtected = isHome || isWork || isOutreach || isSettings;
   const skipRedirects = isServerActionRequest(request);
 
   if (!url || !key) {
@@ -48,7 +50,11 @@ export async function updateSession(request: NextRequest) {
         });
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options);
+          response.cookies.set(
+            name,
+            value,
+            asBrowserSessionCookie(options ?? {}),
+          );
         });
         Object.entries(headers ?? {}).forEach(([header, headerValue]) => {
           response.headers.set(header, headerValue);

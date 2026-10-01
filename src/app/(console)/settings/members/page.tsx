@@ -17,7 +17,7 @@ export default async function MembersSettingsPage() {
       <PageHeader
         kicker="Workspace"
         title="Members"
-        description="People who can sign in to Tatari Work."
+        description="People who can sign in to Tatari Internal."
       />
       <ul className="divide-y divide-white/6 rounded-card border border-border">
         {members.map((member) => (

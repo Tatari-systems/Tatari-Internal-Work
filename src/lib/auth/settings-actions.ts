@@ -74,7 +74,7 @@ export async function inviteMemberAction(
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { display_name: displayName },
-    redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent("/work")}`,
+    redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent("/")}`,
   });
 
   if (error) {

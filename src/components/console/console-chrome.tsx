@@ -21,10 +21,10 @@ export function ConsoleChrome({
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-bg/80 backdrop-blur-[20px]">
         <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8">
-          <Link href="/work" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <TatariLogo size={32} priority />
-            <span className="font-brand text-lg font-bold tracking-tight text-text">
-              Tatari
+            <span className="font-brand text-lg font-light tracking-[0.06em] text-text">
+              Tatari Internal
             </span>
           </Link>
           <div className="ml-auto">

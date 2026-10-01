@@ -1,5 +1,14 @@
+import {
+  CheckCircle2,
+  FileText,
+  MailWarning,
+  Radar,
+  Send,
+} from "lucide-react";
+
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/dashboard";
 import { InvestorTable } from "@/components/outreach/investor-table";
 import { OutreachFilterTabs } from "@/components/outreach/outreach-filter-tabs";
 import { RunBatchButton } from "@/components/outreach/run-batch-button";
@@ -32,7 +41,7 @@ export default async function OutreachQueuePage({
     return (
       <div className="space-y-8">
         <PageHeader
-          kicker="Outreach"
+          kicker="Outreach CRM"
           title="Investor queue"
           description="Master Investor List from Google Sheets. Research and drafts come from the n8n automation."
         />
@@ -65,7 +74,7 @@ export default async function OutreachQueuePage({
   return (
     <div className="space-y-8">
       <PageHeader
-        kicker="Outreach"
+        kicker="Outreach CRM"
         title="Investor queue"
         description="Master Investor List from Google Sheets. Research and drafts come from the n8n automation."
         actions={
@@ -75,6 +84,42 @@ export default async function OutreachQueuePage({
           />
         }
       />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard
+          label="Ready"
+          value={counts.ready ?? 0}
+          icon={Radar}
+          hint="Eligible for prep"
+        />
+        <StatCard
+          label="Draft ready"
+          value={counts.draft_ready ?? 0}
+          icon={FileText}
+          tone="accent"
+          hint="Needs review"
+        />
+        <StatCard
+          label="Needs email"
+          value={counts.needs_email ?? 0}
+          icon={MailWarning}
+          tone={(counts.needs_email ?? 0) > 0 ? "danger" : "default"}
+          hint="Missing recipient"
+        />
+        <StatCard
+          label="Scheduled"
+          value={counts.scheduled ?? 0}
+          icon={Send}
+          hint="Waiting to send"
+        />
+        <StatCard
+          label="Sent"
+          value={counts.sent ?? 0}
+          icon={CheckCircle2}
+          hint="Already delivered"
+        />
+      </div>
+
       <OutreachFilterTabs active={filter} counts={counts} />
       {investors.length === 0 ? (
         <EmptyState

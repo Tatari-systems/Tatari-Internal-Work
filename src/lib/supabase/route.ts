@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { asBrowserSessionCookie } from "@/lib/supabase/cookies";
 import { requireSupabaseEnv } from "@/lib/supabase/env";
 
 type CookieToSet = {
@@ -35,7 +36,11 @@ function createCookieWriter(request: NextRequest, persistToCookieStore = false) 
       },
       setAll(incoming, headers) {
         incoming.forEach(({ name, value, options }) => {
-          cookiesToSet.push({ name, value, options });
+          cookiesToSet.push({
+            name,
+            value,
+            options: asBrowserSessionCookie(options ?? {}),
+          });
           request.cookies.set(name, value);
         });
         Object.entries(headers ?? {}).forEach(([header, headerValue]) => {

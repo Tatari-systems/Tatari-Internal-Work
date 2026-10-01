@@ -20,8 +20,8 @@ export function AuthScreen({
           <div className="flex justify-center">
             <TatariLogo size={56} priority />
           </div>
-          <p className="font-brand text-xs font-semibold uppercase tracking-[0.28em] text-text-faint">
-            Internal
+          <p className="font-brand text-xs font-semibold uppercase tracking-[0.28em] text-cyan/80">
+            Tatari Internal
           </p>
           <h1 className="font-display text-4xl leading-tight text-text">
             {title}

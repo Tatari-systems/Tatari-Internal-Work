@@ -85,21 +85,23 @@ describe("internal user access", () => {
 
 describe("login helpers", () => {
   it("rejects unsafe callback URLs", () => {
-    expect(safeCallbackUrl("//evil.example")).toBe("/work");
-    expect(safeCallbackUrl("/login")).toBe("/work");
-    expect(safeCallbackUrl("/signup")).toBe("/work");
-    expect(safeCallbackUrl("/auth/callback")).toBe("/work");
-    expect(safeCallbackUrl("/api/auth/session")).toBe("/work");
+    expect(safeCallbackUrl("//evil.example")).toBe("/");
+    expect(safeCallbackUrl("/login")).toBe("/");
+    expect(safeCallbackUrl("/signup")).toBe("/");
+    expect(safeCallbackUrl("/auth/callback")).toBe("/");
+    expect(safeCallbackUrl("/api/auth/session")).toBe("/");
     expect(
       safeCallbackUrl("http://localhost:3000/work/projects/operations"),
     ).toBe("/work/projects/operations");
     expect(safeCallbackUrl("/work/inbox")).toBe("/work/inbox");
+    expect(safeCallbackUrl(null)).toBe("/");
   });
 
   it("explains access denial without exposing internals", () => {
     expect(loginErrorMessage("AccessDenied")).toMatch(/not approved/);
     expect(loginErrorMessage("DomainDenied")).toMatch(/tatari\.systems/);
     expect(loginErrorMessage("SchemaMissing")).toMatch(/schema\.sql/);
+    expect(loginErrorMessage("SessionExpired")).toMatch(/session ended/i);
     expect(loginErrorMessage("nope")).toMatch(/could not sign you in/i);
   });
 

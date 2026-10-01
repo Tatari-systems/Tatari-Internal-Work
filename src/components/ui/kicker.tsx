@@ -9,7 +9,7 @@ export function Kicker({
   return (
     <p
       className={cx(
-        "font-brand text-xs font-semibold uppercase tracking-[0.28em] text-text-faint",
+        "font-brand text-xs font-semibold uppercase tracking-[0.28em] text-cyan/80",
         className,
       )}
       {...props}

@@ -72,7 +72,7 @@ export function InvestorReviewPanel({
 
       {needsEmail || found.length > 0 ? (
         <div className="min-w-0 space-y-3 rounded-card border border-border bg-bg px-4 py-4">
-          <h3 className="font-brand text-[11px] uppercase tracking-[0.18em] text-text-faint">
+          <h3 className="font-brand text-[11px] uppercase tracking-[0.18em] text-cyan/80">
             Recipient email
           </h3>
           <p className="break-words text-sm text-text-muted [overflow-wrap:anywhere]">

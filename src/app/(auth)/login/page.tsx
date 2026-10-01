@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import { AuthForm } from "@/components/auth-form";
 import { AuthScreen } from "@/components/auth-screen";
+import { SignedInLoginPanel } from "@/components/signed-in-login-panel";
 import { TATARI_EMAIL_DOMAIN } from "@/lib/auth/allowed-email";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { getOptionalConsoleActor } from "@/lib/auth/console";
@@ -22,6 +22,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const callbackUrl = safeCallbackUrl(params.callbackUrl);
+  const sessionExpired = params.session === "expired";
   let actor = null;
   let schemaMissing = false;
 
@@ -35,19 +36,29 @@ export default async function LoginPage({
     schemaMissing = true;
   }
 
-  if (actor && params.session !== "expired") {
-    redirect(callbackUrl);
-  }
-
   const errorMessage = schemaMissing
     ? loginErrorMessage("SchemaMissing")
-    : params.error
-      ? loginErrorMessage(params.error)
-      : undefined;
+    : sessionExpired
+      ? loginErrorMessage("SessionExpired")
+      : params.error
+        ? loginErrorMessage(params.error)
+        : undefined;
+
+  if (actor && !sessionExpired) {
+    return (
+      <AuthScreen
+        title="Welcome back"
+        description="You are already signed in to Tatari Internal."
+        errorMessage={errorMessage}
+      >
+        <SignedInLoginPanel email={actor.email} callbackUrl={callbackUrl} />
+      </AuthScreen>
+    );
+  }
 
   return (
     <AuthScreen
-      title="Sign in to Tatari"
+      title="Sign in to Tatari Internal"
       description={`Use your @${TATARI_EMAIL_DOMAIN} email, or Google with that same account.`}
       errorMessage={errorMessage}
     >

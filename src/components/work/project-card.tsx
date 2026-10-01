@@ -29,7 +29,7 @@ export function ProjectCard({
           aria-hidden
         />
         <CardHeader className="pt-6">
-          <p className="font-brand text-[11px] uppercase tracking-[0.18em] text-text-faint">
+          <p className="font-brand text-[11px] uppercase tracking-[0.18em] text-cyan/80">
             Project
           </p>
           <CardTitle>{project.name}</CardTitle>
